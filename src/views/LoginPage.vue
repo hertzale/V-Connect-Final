@@ -51,7 +51,7 @@ const password = ref('')
 const errorMessage = ref('')
 
 const goRegister = () => {
-  router.push('/Register')
+  router.push('/registeras')
 }
 
 const login = async () => {
