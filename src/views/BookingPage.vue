@@ -209,7 +209,7 @@ function confirmBooking() {
   --background: #fff;
   box-shadow: 0 1px 0 #eee;
 }
-.toolbar-title { font-size: 17px; font-weight: 800; }
+.toolbar-title { font-size: 17px; font-weight: 800;   font-family: 'Gil Sans MT', sans-serif; }
 .back-btn { --color: #0f0f1a; }
 
 /* Vehicle Summary */
@@ -231,17 +231,39 @@ function confirmBooking() {
   font-size: 28px;
   flex-shrink: 0;
 }
-.vs-name { font-size: 16px; font-weight: 800; color: #0f0f1a; margin-bottom: 2px; }
-.vs-biz  { font-size: 12px; color: #999; margin-bottom: 4px; }
-.vs-price { display: flex; align-items: center; gap: 8px; }
-.price-highlighted { font-size: 20px; font-weight: 800; color: #00c896; }
+.vs-name { 
+  font-size: 16px; 
+  font-weight: 800; 
+  color: #0f0f1a; 
+  margin-bottom: 2px;
+  font-family: 'Gil Sans MT', sans-serif;
+}
+.vs-biz  { 
+  font-size: 12px; 
+  color: #999; 
+  margin-bottom: 4px; 
+  font-family: 'Gil Sans MT', sans-serif;
+}
+
+.vs-price { 
+  display: flex; 
+  align-items: center; 
+  gap: 8px;
+  font-family: 'Gil Sans MT', sans-serif;
+}
+.price-highlighted { 
+  font-size: 20px; 
+  font-weight: 800; 
+  color: #b70b67; 
+}
 .negotiated-tag {
-  background: #e8fdf6;
-  color: #00a87e;
+  background: #ffedf6;
+  color: #b70b67;
   font-size: 11px;
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 8px;
+  font-family: 'Gil Sans MT', sans-serif;
 }
 
 /* Section Cards */
@@ -250,7 +272,13 @@ function confirmBooking() {
   padding: 18px 20px;
   margin-bottom: 8px;
 }
-.card-title { font-size: 16px; font-weight: 800; color: #0f0f1a; margin: 0 0 14px; }
+.card-title { 
+  font-size: 16px; 
+  font-weight: 800; 
+  color: #0f0f1a; 
+  margin: 0 0 14px; 
+  font-family: 'Gil Sans MT', sans-serif;
+}
 
 /* Date Fields */
 .date-fields {
@@ -267,8 +295,16 @@ function confirmBooking() {
   border: 2px solid transparent;
   transition: border 0.2s;
 }
-.date-field:focus-within { border-color: #00c896; }
-.df-label { font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 600; }
+.date-field:focus-within { 
+  border-color: #00c896; 
+}
+.df-label { 
+  font-size: 11px; 
+  color: #999; 
+  margin-bottom: 4px; 
+  font-weight: 600;
+  font-family: 'Gil Sans MT', sans-serif;
+}
 .df-input {
   border: none;
   background: transparent;
@@ -278,7 +314,11 @@ function confirmBooking() {
   outline: none;
   width: 100%;
 }
-.date-arrow { font-size: 18px; color: #ccc; flex-shrink: 0; }
+.date-arrow { 
+  font-size: 18px; 
+  color: #ccc; 
+  flex-shrink: 0;
+}
 
 .duration-chip {
   background: #e8fdf6;
@@ -291,9 +331,20 @@ function confirmBooking() {
 }
 
 /* Form */
-.form-group { margin-bottom: 16px; }
-.form-group:last-child { margin-bottom: 0; }
-.form-label { display: block; font-size: 13px; font-weight: 700; color: #333; margin-bottom: 6px; }
+.form-group { 
+  margin-bottom: 16px; 
+}
+.form-group:last-child { 
+  margin-bottom: 0; 
+}
+.form-label { 
+  display: block; 
+  font-size: 13px; 
+  font-weight: 700; 
+  color: #333; 
+  margin-bottom: 6px; 
+  font-family: 'Gil Sans MT', sans-serif;
+}
 .form-input {
   width: 100%;
   background: #f4f4f8;
@@ -306,7 +357,10 @@ function confirmBooking() {
   box-sizing: border-box;
   transition: border 0.2s;
 }
-.form-input:focus { border-color: #00c896; }
+.form-input:focus { 
+  border-color: #00c896; 
+}
+
 .form-textarea {
   width: 100%;
   background: #f4f4f8;
@@ -336,14 +390,39 @@ function confirmBooking() {
   text-align: center;
 }
 .option-card.selected {
-  background: #e8fdf6;
-  border-color: #00c896;
+  background: #ffdff0;
+  border-color: #b70b67;
 }
-.oc-icon { font-size: 26px; margin-bottom: 6px; }
-.oc-label { font-size: 14px; font-weight: 700; color: #0f0f1a; margin-bottom: 3px; }
-.oc-sub { font-size: 11px; color: #999; margin-bottom: 6px; }
-.oc-free { font-size: 13px; font-weight: 800; color: #00c896; }
-.oc-fee  { font-size: 13px; font-weight: 800; color: #e05555; }
+.oc-icon { 
+  font-size: 26px; 
+  margin-bottom: 6px; 
+}
+.oc-label { 
+  font-size: 14px; 
+  font-weight: 700; 
+  color: #0f0f1a; 
+  margin-bottom: 3px; 
+  font-family: 'Gil Sans MT', sans-serif;
+}
+.oc-sub { 
+  font-size: 11px; 
+  color: #999; 
+  margin-bottom: 6px;
+  font-family: 'Gil Sans MT', sans-serif;
+}
+
+.oc-free { 
+  font-size: 13px; 
+  font-weight: 800; 
+  color: #b70b67; 
+  font-family: 'Gil Sans MT', sans-serif;
+}
+.oc-fee  { 
+  font-size: 13px; 
+  font-weight: 800; 
+  color: #e05555; 
+  font-family: 'Gil Sans MT', sans-serif;
+}
 
 /* Breakdown */
 .breakdown-card { border-top: 1px solid #f0f0f5; }
@@ -361,8 +440,9 @@ function confirmBooking() {
   font-size: 16px;
   font-weight: 800;
   color: #0f0f1a;
+  font-family: 'Gil Sans MT', sans-serif;
 }
-.total-val { color: #00c896; }
+.total-val { color: #b70b67; }
 
 /* Footer */
 .footer-bar {
@@ -380,7 +460,7 @@ function confirmBooking() {
 .ft-val { font-size: 22px; font-weight: 800; color: #0f0f1a; }
 .btn-confirm {
   flex: 1.5;
-  --background: #00c896;
+  --background: #b70b67;
   --color: #fff;
   --border-radius: 14px;
   --box-shadow: 0 4px 14px rgba(0,200,150,0.35);

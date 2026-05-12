@@ -4,7 +4,14 @@ import { RouteRecordRaw } from "vue-router";
 const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
-    redirect: "/login",
+    redirect: "/welcome",
+  },
+
+  // ── Public ────────────────────────────────────────────────
+  {
+    path: "/welcome",
+    name: "Landing",
+    component: () => import("../views/LandingPage.vue"),
   },
   {
     path: "/login",
@@ -12,40 +19,93 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import("../views/LoginPage.vue"),
   },
   {
+    path: "/register-type",
+    name: "RegisterType",
+    component: () => import("../views/RegisterTypePage.vue"),
+  },
+  {
     path: "/register",
     name: "Register",
     component: () => import("../views/RegisterPage.vue"),
   },
+
+  // ── Customer ──────────────────────────────────────────────
   {
     path: "/home",
     name: "Home",
     component: () => import("../views/HomePage.vue"),
   },
   {
+    path: "/businesses",
+    name: "BusinessList",
+    component: () => import("../views/BusinessListPage.vue"),
+  },
+  {
+    path: "/business/:id",
+    name: "BusinessDetail",
+    component: () => import("../views/BusinessDetailPage.vue"),
+  },
+  {
+    path: "/vehicle/:id",
+    name: "VehicleDetail",
+    component: () => import("../views/VehicleDetailPage.vue"),
+  },
+  {
+    path: "/negotiate/:id?",
+    name: "Negotiate",
+    component: () => import("../views/NegotiatePage.vue"),
+  },
+  {
+    path: "/booking",
+    name: "Booking",
+    component: () => import("../views/BookingPage.vue"),
+  },
+  {
+    path: "/transactions",
+    name: "Transactions",
+    component: () => import("../views/TransactionPage.vue"),
+  },
+  {
+    path: "/profile",
+    name: "Profile",
+    component: () => import("../views/ProfilePage.vue"),
+  },
+
+  // ── Business Owner ────────────────────────────────────────
+  {
+    path: "/dashboard",
+    name: "Dashboard",
+    component: () => import("../views/BusinessDashboard.vue"),
+  },
+  {
     path: "/post",
-    name: "post",
+    name: "Post",
     component: () => import("../views/PostPage.vue"),
   },
   {
+    path: "/edit-vehicle/:id",
+    name: "EditVehicle",
+    component: () => import("../views/EditPage.vue"),
+  },
+  {
     path: "/listings",
-    name: "listings",
+    name: "Listings",
     component: () => import("../views/ListingsPage.vue"),
   },
   {
-    path: '/edit-vehicle/:id',
-    component: () => import('../views/EditPage.vue')
+    path: "/transaction-requests",
+    name: "TransactionRequests",
+    component: () => import("../views/TransactionRequestsPage.vue"),
   },
   {
-    path:'/',
-    redirect: '/welcome'
+    path: "/booking-history",
+    name: "BookingHistory",
+    component: () => import("../views/BookingHistoryPage.vue"),
   },
   {
-    path: '/registeras',
-    component: () => import('../views/RegisterTypePage.vue')
-  },
-  {
-    path: '/profile',
-    component: () => import('../views/ProfilePage.vue')
+    path: "/business-profile",
+    name: "BusinessProfile",
+    component: () => import("../views/BusinessProfilePage.vue"),
   },
 ];
 

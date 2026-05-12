@@ -5,7 +5,7 @@
 
         <!-- Background -->
         <img src="@/assets/new-bg.png" class="bg-mobile" />
-        <img src="@/assets/new-bg.png" class="bg-web" />
+        <img src="@/assets/v-connect-bg-web.png" class="bg-web" />
 
         <div class="container">
 

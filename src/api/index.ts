@@ -13,8 +13,8 @@ api.interceptors.request.use((config) => {
 })
 
 export const authAPI = {
-  login: (data: any) => api.post('/api/auth/login', data),       // ← add /api
-  register: (data: any) => api.post('/api/auth/register', data)  // ← add /api
+  login: (data: any) => api.post('/api/auth/login', data),
+  register: (data: any) => api.post('/api/auth/register', data)
 }
 
 export const vehicleAPI = {
@@ -26,6 +26,12 @@ export const vehicleAPI = {
   updateStatus: (id: string, status: string) =>
     api.patch(`/api/vehicles/${id}/status`, { status }),
   delete: (id: string) => api.delete(`/api/vehicles/${id}`)
+}
+
+export const businessAPI = {
+  getAll: () => api.get('/api/businesses'),
+  getOne: (id: string) => api.get(`/api/businesses/${id}`),
+  getVehicles: (id: string) => api.get(`/api/businesses/${id}/vehicles`),
 }
 
 export default api

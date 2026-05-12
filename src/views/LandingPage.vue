@@ -4,8 +4,8 @@
       <div class="landing-wrapper">
 
         <div class="hero-section">
-          <div class="blob blob-1"></div>
-          <div class="blob blob-2"></div>
+          <img src="@/assets/new-bg.png" alt="Vcon Background" class="bg-mobile" />
+          <img src="@/assets/v-connect-bg-web.png" class="bg-web" />
 
           <div class="brand">
             <div class="brand-icon">🚗</div>
@@ -70,7 +70,7 @@ import { IonPage, IonContent, IonButton, IonIcon } from '@ionic/vue'
 
 <style scoped>
 .landing-content {
-  --background: #0f0f1a;
+  --background: transparent;
 }
 
 .landing-wrapper {
@@ -93,25 +93,42 @@ import { IonPage, IonContent, IonButton, IonIcon } from '@ionic/vue'
   gap: 32px;
 }
 
-.blob {
+/* Background images */
+.bg-mobile {
   position: absolute;
-  border-radius: 50%;
-  filter: blur(70px);
-  opacity: 0.45;
-  pointer-events: none;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  display: block;
 }
-.blob-1 {
-  width: 280px; height: 280px;
-  background: #00c896;
-  top: -80px; right: -60px;
+.bg-web {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  display: none;
 }
-.blob-2 {
-  width: 200px; height: 200px;
-  background: #0070f3;
-  bottom: 0; left: -60px;
+
+@media (min-width: 768px) {
+  .bg-mobile { display: none; }
+  .bg-web    { display: block; }
 }
 
 .brand { position: relative; z-index: 1; }
+
+/* dim the bg slightly so text is readable */
+.hero-section::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 0;
+  pointer-events: none;
+}
 .brand-icon { font-size: 52px; margin-bottom: 8px; }
 .brand-name {
   font-size: 38px;

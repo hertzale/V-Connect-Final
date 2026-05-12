@@ -345,7 +345,11 @@ async function scrollBottom() {
   --background: #fff;
   box-shadow: 0 1px 0 #eee;
 }
-.toolbar-center { text-align: center; flex: 1; }
+.toolbar-center { 
+  text-align: center; 
+  flex: 1;   
+  font-family: 'Gil Sans MT', sans-serif;
+}
 .toolbar-biz-name { font-size: 15px; font-weight: 800; color: #0f0f1a; }
 .toolbar-vehicle { font-size: 11px; color: #999; }
 .back-btn { --color: #0f0f1a; }
@@ -360,13 +364,22 @@ async function scrollBottom() {
   padding: 10px 16px;
   border-bottom: 1px solid #eee;
   gap: 8px;
+  font-family: 'Gil Sans MT', sans-serif;
+
 }
-.price-bar-item { text-align: center; }
-.pb-label { display: block; font-size: 10px; color: #999; margin-bottom: 2px; }
+.price-bar-item { 
+  text-align: center;
+}
+.pb-label { 
+  display: block; 
+  font-size: 10px; 
+  color: #999; 
+  margin-bottom: 2px;
+}
 .pb-val { font-size: 14px; font-weight: 800; }
 .pb-val.listed { color: #555; text-decoration: line-through; }
 .pb-val.offer { color: #0070f3; }
-.pb-val.agreed { color: #00c896; }
+.pb-val.agreed { color: #b70b67; }
 .pb-val.none { color: #bbb; font-weight: 400; font-size: 12px; }
 .arrow-between { color: #ccc; font-size: 16px; }
 
@@ -392,7 +405,7 @@ async function scrollBottom() {
 
 .msg-avatar {
   width: 32px; height: 32px;
-  background: linear-gradient(135deg,#667eea,#764ba2);
+  background: linear-gradient(135deg,#667eea,#b70b67);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -415,7 +428,7 @@ async function scrollBottom() {
   line-height: 1.5;
 }
 .bubble-mine {
-  background: #00c896;
+  background: #aa065e;
   color: #fff;
   border-bottom-right-radius: 6px;
 }
@@ -436,8 +449,8 @@ async function scrollBottom() {
   box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   min-width: 200px;
 }
-.offer-mine { border: 2px solid #00c896; }
-.offer-theirs { border: 2px solid #0070f3; }
+.offer-mine { border: 2px solid #b70b67; }
+.offer-theirs { border: 2px solid #b70b67; }
 
 .offer-card-label { font-size: 11px; color: #999; margin-bottom: 6px; font-weight: 600; }
 .offer-card-price { font-size: 26px; font-weight: 800; color: #0f0f1a; margin-bottom: 4px; }
@@ -466,8 +479,8 @@ async function scrollBottom() {
 
 /* Agreed Banner */
 .agreed-banner {
-  background: linear-gradient(135deg, #e8fdf6, #d0f5e8);
-  border: 2px solid #00c896;
+  background: #f6eaf0;
+  border: 2px solid #e46fae;
   border-radius: 18px;
   padding: 16px;
   display: flex;
@@ -537,7 +550,7 @@ async function scrollBottom() {
 .agreed-footer { background: #fff; box-shadow: 0 -4px 20px rgba(0,0,0,0.07); }
 .agreed-footer-inner { padding: 12px 16px 28px; }
 .btn-proceed {
-  --background: #00c896;
+  --background: #b70b67;
   --color: #fff;
   --border-radius: 14px;
   --box-shadow: 0 4px 16px rgba(0,200,150,0.35);
