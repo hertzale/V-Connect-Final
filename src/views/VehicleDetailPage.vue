@@ -88,6 +88,72 @@
         </div>
       </div>
 
+      <!-- ← NEW: Driver Option Section -->
+      <div class="section">
+        <h2 class="section-title">Driver Option</h2>
+        <p class="driver-subtitle">Choose how you want to rent this vehicle</p>
+
+        <div class="driver-options">
+
+          <!-- With Driver -->
+          <div
+            :class="['driver-card', selectedDriver === 'with' ? 'driver-selected' : '']"
+            @click="selectDriver('with')"
+          >
+            <div class="driver-card-top">
+              <div class="driver-icon with-driver-icon">
+                <ion-icon name="person-outline"></ion-icon>
+              </div>
+              <div class="driver-check" v-if="selectedDriver === 'with'">
+                <ion-icon name="checkmark-circle"></ion-icon>
+              </div>
+            </div>
+            <p class="driver-title">With Driver</p>
+            <p class="driver-desc">Owner drives the vehicle. No license required.</p>
+            <div class="driver-fee">
+              <ion-icon name="add-circle-outline"></ion-icon>
+              <span>Service fee applies</span>
+            </div>
+          </div>
+
+          <!-- Without Driver -->
+          <div
+            :class="['driver-card', selectedDriver === 'without' ? 'driver-selected' : '']"
+            @click="selectDriver('without')"
+          >
+            <div class="driver-card-top">
+              <div class="driver-icon without-driver-icon">
+                <ion-icon name="car-outline"></ion-icon>
+              </div>
+              <div class="driver-check" v-if="selectedDriver === 'without'">
+                <ion-icon name="checkmark-circle"></ion-icon>
+              </div>
+            </div>
+            <p class="driver-title">Self Drive</p>
+            <p class="driver-desc">You drive the vehicle. Valid license required.</p>
+            <div class="driver-fee no-fee">
+              <ion-icon name="remove-circle-outline"></ion-icon>
+              <span>No service fee</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Warning if no license for self drive -->
+        <div class="license-warning" v-if="selectedDriver === 'without' && !hasLicense">
+          <ion-icon name="warning-outline"></ion-icon>
+          <span>You need a valid driver's license to self-drive. Update your profile to add one.</span>
+        </div>
+
+        <!-- Info if with driver selected -->
+        <div class="driver-info-box" v-if="selectedDriver === 'with'">
+          <ion-icon name="information-circle-outline"></ion-icon>
+          <span>The vehicle owner will be your driver. A service fee will be added to the total.</span>
+        </div>
+
+      </div>
+      <!-- END Driver Option Section -->
+
       <!-- Business Info -->
       <div class="section">
         <h2 class="section-title">Offered by</h2>
@@ -109,40 +175,90 @@
 
     <!-- Footer Actions -->
     <ion-footer class="ion-no-border footer-bar">
+
+      <!-- Price Summary -->
+      <div class="price-summary" v-if="selectedDriver">
+        <div class="price-summary-row">
+          <span>Base rate</span>
+          <span>₱{{ vehicle.price }}/day</span>
+        </div>
+        <div class="price-summary-row" v-if="selectedDriver === 'with'">
+          <span>Service fee</span>
+          <span class="fee-text">+ ₱{{ vehicle.serviceFee }}</span>
+        </div>
+        <div class="price-summary-total">
+          <span>Total per day</span>
+          <span class="total-price">₱{{ totalPrice }}</span>
+        </div>
+      </div>
+
       <div class="footer-inner">
         <ion-button
           expand="block"
           fill="outline"
           class="btn-negotiate"
-          router-link="/negotiate"
-          :disabled="!vehicle.available"
+          @click="goToNegotiate"
+          :disabled="!vehicle.available || !selectedDriver || (selectedDriver === 'without' && !hasLicense)"
         >
           <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
-          Negotiate Price
+          Negotiate
         </ion-button>
         <ion-button
           expand="block"
           class="btn-book"
-          router-link="/booking"
-          :disabled="!vehicle.available"
+          @click="goToBooking"
+          :disabled="!vehicle.available || !selectedDriver || (selectedDriver === 'without' && !hasLicense)"
         >
           Book Now
           <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
         </ion-button>
       </div>
+
+      <!-- Must select driver option message -->
+      <p class="select-driver-msg" v-if="!selectedDriver">
+        Please select a driver option to continue
+      </p>
+
     </ion-footer>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useIonRouter } from '@ionic/vue'
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonTitle, IonButton, IonContent, IonIcon, IonFooter
 } from '@ionic/vue'
 
-const router = useRouter()
+const router = useIonRouter()
+
+// Check if user has license
+const hasLicense = computed(() => {
+  const savedUser = localStorage.getItem('user')
+  if (savedUser) {
+    const user = JSON.parse(savedUser)
+    return !!user.drivers_license
+  }
+  return false
+})
+
+// Driver option selection
+const selectedDriver = ref('')
+
+const selectDriver = (option: string) => {
+  selectedDriver.value = option
+}
+
+// Price calculation
+const totalPrice = computed(() => {
+  const base = parseInt(vehicle.value.price)
+  const fee = parseInt(vehicle.value.serviceFee)
+  if (selectedDriver.value === 'with') {
+    return base + fee
+  }
+  return base
+})
 
 const vehicle = ref({
   id: 1,
@@ -150,6 +266,7 @@ const vehicle = ref({
   emoji: '🚗',
   type: 'Sedan',
   price: '850',
+  serviceFee: '150', // ← service fee for with driver
   rating: '4.8',
   reviews: 47,
   rentals: 123,
@@ -171,8 +288,18 @@ const vehicle = ref({
   businessLocation: 'Makati City',
 })
 
-function goToBusiness() {
+const goToBusiness = () => {
   router.push('/business/1')
+}
+
+const goToBooking = () => {
+  if (!selectedDriver.value) return
+  router.push(`/booking?vehicleId=${vehicle.value.id}&driver=${selectedDriver.value}`)
+}
+
+const goToNegotiate = () => {
+  if (!selectedDriver.value) return
+  router.push(`/negotiate?vehicleId=${vehicle.value.id}&driver=${selectedDriver.value}`)
 }
 </script>
 
@@ -278,7 +405,12 @@ function goToBusiness() {
   padding: 18px 20px;
   margin-top: 8px;
 }
-.section-title { font-size: 16px; font-weight: 800; color: #0f0f1a; margin: 0 0 10px; }
+.section-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f0f1a;
+  margin: 0 0 10px;
+}
 .desc-text { font-size: 14px; color: #555; line-height: 1.6; margin: 0; }
 
 .inclusions { display: flex; flex-direction: column; gap: 8px; }
@@ -291,6 +423,139 @@ function goToBusiness() {
 }
 .check-icon { color: #00c896; font-size: 16px; flex-shrink: 0; }
 
+/* ← NEW: Driver Option Styles */
+.driver-subtitle {
+  font-size: 13px;
+  color: #888;
+  margin: 0 0 14px;
+}
+
+.driver-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.driver-card {
+  border: 2px solid #e0e0e0;
+  border-radius: 16px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f8f8fb;
+}
+
+.driver-card:hover {
+  border-color: #00c896;
+  background: #f0fdf9;
+}
+
+.driver-selected {
+  border-color: #00c896 !important;
+  background: #f0fdf9 !important;
+}
+
+.driver-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.driver-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.with-driver-icon {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #ffffff;
+}
+
+.without-driver-icon {
+  background: linear-gradient(135deg, #00c896, #00a87e);
+  color: #ffffff;
+}
+
+.driver-check {
+  font-size: 20px;
+  color: #00c896;
+}
+
+.driver-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f0f1a;
+  margin: 0 0 4px;
+}
+
+.driver-desc {
+  font-size: 11px;
+  color: #777;
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+
+.driver-fee {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #e05555;
+  font-weight: 600;
+}
+
+.driver-fee.no-fee {
+  color: #00a87e;
+}
+
+.license-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #fff8e1;
+  border: 1px solid #ffc107;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 12px;
+  color: #856404;
+  margin-top: 8px;
+}
+
+.license-warning ion-icon {
+  font-size: 18px;
+  color: #ffc107;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.driver-info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #e8f4fd;
+  border: 1px solid #90caf9;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 12px;
+  color: #1565c0;
+  margin-top: 8px;
+}
+
+.driver-info-box ion-icon {
+  font-size: 18px;
+  color: #1976d2;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+/* END Driver Option Styles */
+
 /* Business chip */
 .biz-chip {
   display: flex;
@@ -302,7 +567,8 @@ function goToBusiness() {
   cursor: pointer;
 }
 .biz-chip-avatar {
-  width: 44px; height: 44px;
+  width: 44px;
+  height: 44px;
   background: linear-gradient(135deg,#667eea,#764ba2);
   border-radius: 12px;
   display: flex;
@@ -312,8 +578,49 @@ function goToBusiness() {
 }
 .biz-chip-info { flex: 1; }
 .biz-chip-name { font-size: 15px; font-weight: 700; color: #0f0f1a; margin-bottom: 3px; }
-.biz-chip-rating { font-size: 12px; color: #777; display: flex; align-items: center; gap: 4px; }
+.biz-chip-rating {
+  font-size: 12px;
+  color: #777;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 .arrow { color: #ccc; }
+
+/* Price Summary */
+.price-summary {
+  padding: 12px 16px 0;
+  border-top: 0.5px solid #f0f0f0;
+}
+
+.price-summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.fee-text {
+  color: #e05555;
+  font-weight: 600;
+}
+
+.price-summary-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f0f1a;
+  padding-top: 8px;
+  border-top: 0.5px solid #f0f0f0;
+  margin-top: 4px;
+}
+
+.total-price {
+  color: #00c896;
+  font-size: 18px;
+}
 
 /* Footer */
 .footer-bar {
@@ -323,7 +630,7 @@ function goToBusiness() {
 .footer-inner {
   display: flex;
   gap: 10px;
-  padding: 12px 16px 28px;
+  padding: 12px 16px 8px;
 }
 .btn-negotiate {
   flex: 1;
@@ -341,5 +648,13 @@ function goToBusiness() {
   --box-shadow: 0 4px 14px rgba(0,200,150,0.35);
   font-weight: 700;
   height: 50px;
+}
+
+.select-driver-msg {
+  text-align: center;
+  font-size: 12px;
+  color: #e05555;
+  padding: 0 16px 12px;
+  margin: 0;
 }
 </style>
