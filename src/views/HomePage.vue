@@ -54,6 +54,34 @@
           >{{ cat }}</span>
         </div>
 
+        <!-- FILTERS -->
+        <div class="filters">
+          <div class="filter-group">
+            <label>Price Range</label>
+            <input type="number" v-model.number="filters.minPrice" placeholder="Min" class="filter-input">
+            <input type="number" v-model.number="filters.maxPrice" placeholder="Max" class="filter-input">
+          </div>
+          <div class="filter-group">
+            <label>Time</label>
+            <input type="time" v-model="filters.time" class="filter-input">
+          </div>
+          <div class="filter-group">
+            <label>Business</label>
+            <input type="text" v-model="filters.business" placeholder="Business name" class="filter-input">
+          </div>
+          <div class="filter-group">
+            <label>Vehicle</label>
+            <select v-model="filters.vehicle" class="filter-select">
+              <option value="">All Vehicles</option>
+              <option value="Tricycle">Tricycle</option>
+              <option value="Motorcycle">Motorcycle</option>
+              <option value="Car">Car</option>
+              <option value="Van">Van</option>
+            </select>
+          </div>
+          <button @click="clearFilters" class="clear-btn">Clear Filters</button>
+        </div>
+
         <!-- LOADING -->
         <div v-if="isLoading" class="listings">
           <p class="section-title">Loading businesses...</p>
@@ -172,6 +200,32 @@ const userInitials = ref('??')
 const showMenu = ref(false)
 const businesses = ref<any[]>([])
 const isLoading = ref(false)
+
+type Filters = {
+  minPrice: number | null
+  maxPrice: number | null
+  time: string
+  business: string
+  vehicle: string
+}
+
+const filters = ref<Filters>({
+  minPrice: null,
+  maxPrice: null,
+  time: '',
+  business: '',
+  vehicle: ''
+})
+
+const clearFilters = () => {
+  filters.value = {
+    minPrice: null,
+    maxPrice: null,
+    time: '',
+    business: '',
+    vehicle: ''
+  }
+}
 
 const categories = ['All', 'Tricycle', 'Motorcycle', 'Car', 'Van']
 
