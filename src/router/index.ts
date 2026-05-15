@@ -2,12 +2,6 @@ import { createRouter, createWebHistory } from "@ionic/vue-router";
 import { RouteRecordRaw } from "vue-router";
 import { requireAuth, requireOwner, requireCustomer } from './guard';
 
-declare module "*.vue" {
-  import type { DefineComponent } from "vue";
-  const component: DefineComponent<Record<string, never>, Record<string, never>, any>;
-  export default component;
-}
-
 const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
@@ -41,11 +35,6 @@ const routes: Array<RouteRecordRaw> = [
     path: "/home",
     name: "Home",
     component: () => import("../views/HomePage.vue"),
-  },
-  {
-    path: "/businesses",
-    name: "BusinessList",
-    component: () => import("../views/BusinessListPage.vue"),
   },
   {
     //hardoced
@@ -123,7 +112,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import("../views/BusinessProfilePage.vue"),
   },
   {
-    path: "/dashboard",
+    path: "/owner-dashboard",
     name: "OwnerDashboard",
     component: () => import("../views/OwnerDashboardPage.vue"),
   },

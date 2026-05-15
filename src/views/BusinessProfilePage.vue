@@ -3,7 +3,7 @@
     <ion-header class="ion-no-border">
       <ion-toolbar class="toolbar">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/dashboard" text="" class="back-btn"></ion-back-button>
+          <ion-back-button default-href="/owner-dashboard" text="" class="back-btn"></ion-back-button>
         </ion-buttons>
         <ion-title class="toolbar-title">Business Profile</ion-title>
         <ion-buttons slot="end">

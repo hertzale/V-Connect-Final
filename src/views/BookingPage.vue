@@ -196,8 +196,9 @@ function calcDays() {
   }
 }
 
-function focusDate(which: string) {
-  // native date input handles this
+function focusDate(_which?: string) {
+  // native date input handles this; reference param to satisfy linter
+  void _which
 }
 
 const totalAmount = computed(() => {

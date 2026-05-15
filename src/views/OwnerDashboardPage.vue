@@ -14,7 +14,7 @@
               <p class="header-sub">Business Dashboard</p>
               <h1 class="header-name">{{ userName }} 🏢</h1>
             </div>
-            <div class="avatar" @click="logout">{{ userInitials }}</div>
+            <div class="avatar" @click="goTo('/business-profile')">{{ userInitials }}</div>
           </div>
 
           <!-- Stats -->
@@ -146,7 +146,7 @@
 
     <!-- Tab Bar -->
     <div class="tab-bar">
-      <div class="tab-item active" @click="goTo('/dashboard')">
+      <div class="tab-item active" @click="goTo('/owner-dashboard')">
         <ion-icon name="grid-outline"></ion-icon>
         <span>Dashboard</span>
       </div>
