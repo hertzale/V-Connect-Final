@@ -1,494 +1,551 @@
 <template>
   <ion-page>
-    <ion-header class="ion-no-border">
-      <ion-toolbar class="toolbar">
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/dashboard" text="" class="back-btn"></ion-back-button>
-        </ion-buttons>
-        <ion-title class="toolbar-title">Booking History</ion-title>
-        <ion-buttons slot="end">
-          <ion-button fill="clear" class="filter-btn" @click="showFilterModal = true">
-            <ion-icon name="filter-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <ion-content :fullscreen="true">
+      <div class="page">
 
-    <ion-content class="page-content">
-      <ion-refresher slot="fixed" @ionRefresh="doRefresh($event)">
-        <ion-refresher-content></ion-refresher-content>
-      </ion-refresher>
+        <img src="@/assets/new-bg.png" alt="Vcon Background" class="bg-mobile" />
+        <img src="@/assets/v-connect-bg-web.png" class="bg-web" />
 
-      <!-- Summary Cards -->
-      <div class="summary-section">
-        <div class="summary-scroll">
-          <div class="summary-card highlight">
-            <div class="sc-icon">💰</div>
-            <div class="sc-val">₱{{ summary.totalRevenue.toLocaleString() }}</div>
-            <div class="sc-label">Total Revenue</div>
+        <div class="container">
+
+          <!-- Header -->
+          <div class="post-header">
+            <div class="back-btn" @click="goBack">
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </div>
+            <h1 class="header-title">Search & Reports</h1>
           </div>
-          <div class="summary-card">
-            <div class="sc-icon">📋</div>
-            <div class="sc-val">{{ summary.totalBookings }}</div>
-            <div class="sc-label">Total Bookings</div>
-          </div>
-          <div class="summary-card">
-            <div class="sc-icon">🚗</div>
-            <div class="sc-val">{{ summary.mostBooked }}</div>
-            <div class="sc-label">Most Booked</div>
-          </div>
-          <div class="summary-card">
-            <div class="sc-icon">⭐</div>
-            <div class="sc-val">{{ summary.avgRating }}</div>
-            <div class="sc-label">Avg Rating</div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Filter Row -->
-      <div class="filter-row">
-        <div class="filter-chips">
-          <div
-            v-for="f in vehicleFilters"
-            :key="f"
-            class="chip"
-            :class="{ active: vehicleFilter === f }"
-            @click="vehicleFilter = f"
-          >{{ f }}</div>
-        </div>
+          <!-- Search & Filter Card -->
+          <div class="glass-card filter-card">
+            <p class="card-label">Search Transactions</p>
 
-        <div class="date-filter" @click="showFilterModal = true">
-          <ion-icon name="calendar-outline"></ion-icon>
-          <span>{{ selectedRange }}</span>
-        </div>
-      </div>
+            <!-- Keyword search -->
+            <div class="search-row">
+              <ion-icon name="search-outline" class="search-icon"></ion-icon>
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search by vehicle, customer..."
+                class="search-input"
+                @input="applyFilters"
+              />
+            </div>
 
-      <!-- Results Count -->
-      <div class="results-label">
-        Showing {{ filteredHistory.length }} booking(s)
-      </div>
-
-      <!-- History List -->
-      <div class="list">
-        <div
-          v-for="item in filteredHistory"
-          :key="item.id"
-          class="history-card"
-        >
-          <div class="hc-header">
-            <div class="hc-vehicle">
-              <div class="hc-emoji">{{ item.emoji }}</div>
-              <div>
-                <div class="hc-vehicle-name">{{ item.vehicleName }}</div>
-                <div class="hc-renter">Rented by {{ item.renterName }}</div>
+            <!-- Date Range -->
+            <div class="date-row">
+              <div class="date-field">
+                <p class="df-label">📅 Date From</p>
+                <input v-model="dateFrom" type="date" class="input-field" @change="applyFilters" />
+              </div>
+              <div class="date-arrow">→</div>
+              <div class="date-field">
+                <p class="df-label">📅 Date To</p>
+                <input v-model="dateTo" type="date" class="input-field" @change="applyFilters" />
               </div>
             </div>
-            <div class="hc-status" :class="item.status">{{ statusLabel(item.status) }}</div>
+
+            <!-- Status Filter -->
+            <div class="status-filter-row">
+              <div
+                v-for="f in statusFilters"
+                :key="f"
+                :class="['status-pill', statusFilter === f ? 'pill-active' : '']"
+                @click="statusFilter = f; applyFilters()"
+              >{{ f }}</div>
+            </div>
+
+            <button class="btn-clear" @click="clearFilters" v-if="hasActiveFilters">
+              Clear Filters ✕
+            </button>
           </div>
 
-          <div class="hc-divider"></div>
-
-          <div class="hc-details">
-            <div class="hc-detail-row">
-              <ion-icon name="calendar-outline" class="hd-icon"></ion-icon>
-              <span>{{ item.startDate }} → {{ item.endDate }} ({{ item.days }} day(s))</span>
+          <!-- Summary -->
+          <div class="glass-card summary-row" v-if="filtered.length > 0">
+            <div class="summary-item">
+              <p class="sum-val">{{ filtered.length }}</p>
+              <p class="sum-lbl">Records</p>
             </div>
-            <div class="hc-detail-row">
-              <ion-icon name="cash-outline" class="hd-icon"></ion-icon>
-              <span>
-                ₱{{ item.pricePerDay }}/day
-                <span class="negotiated-note" v-if="item.negotiated">(negotiated from ₱{{ item.listedPrice }})</span>
-              </span>
+            <div class="sum-divider"></div>
+            <div class="summary-item">
+              <p class="sum-val pink">₱{{ totalRevenue.toLocaleString() }}</p>
+              <p class="sum-lbl">Total Revenue</p>
             </div>
-            <div class="hc-detail-row" v-if="item.rating">
-              <ion-icon name="star" class="hd-icon star"></ion-icon>
-              <span>{{ item.rating }} — "{{ item.review }}"</span>
+            <div class="sum-divider"></div>
+            <div class="summary-item">
+              <p class="sum-val">{{ completedCount }}</p>
+              <p class="sum-lbl">Completed</p>
             </div>
           </div>
 
-          <div class="hc-footer">
-            <div class="hc-total">₱{{ item.totalAmount.toLocaleString() }}</div>
-            <div class="hc-booking-id">ID #{{ item.id }}</div>
+          <!-- Loading -->
+          <div class="glass-card center-card" v-if="isLoading">
+            <p class="center-txt">Loading transactions...</p>
           </div>
+
+          <!-- Empty -->
+          <div class="glass-card center-card" v-else-if="filtered.length === 0">
+            <div class="empty-icon">📊</div>
+            <p class="empty-title">No records found</p>
+            <p class="empty-sub">Try adjusting your search or date range.</p>
+          </div>
+
+          <!-- Results -->
+          <div v-else>
+            <p class="results-label">Showing {{ filtered.length }} result(s)</p>
+            <div
+              v-for="tx in filtered"
+              :key="tx.Transaction_ID"
+              class="glass-card tx-card"
+              :class="statusBorderClass(tx.Rental_Status)"
+            >
+              <div class="tx-top">
+                <div class="tx-icon">
+                  <ion-icon name="car-outline"></ion-icon>
+                </div>
+                <div class="tx-info">
+                  <p class="tx-vehicle">{{ tx.Vehicle_Model }}</p>
+                  <p class="tx-person">
+                    {{ isOwnerView ? tx.Customer_Name : tx.Owner_Name }}
+                  </p>
+                </div>
+                <div :class="['status-chip', statusChipClass(tx.Rental_Status)]">
+                  {{ tx.Rental_Status }}
+                </div>
+              </div>
+
+              <div class="tx-divider"></div>
+
+              <div class="tx-details">
+                <div class="tx-row-detail">
+                  <ion-icon name="calendar-outline" class="td-icon"></ion-icon>
+                  <span>{{ formatDate(tx.Start_Date_and_Time) }} → {{ formatDate(tx.End_Date_and_Time) }}</span>
+                </div>
+                <div class="tx-row-detail">
+                  <ion-icon name="time-outline" class="td-icon"></ion-icon>
+                  <span>{{ tx.Rental_Duration }} day(s)</span>
+                </div>
+                <div class="tx-row-detail">
+                  <ion-icon name="location-outline" class="td-icon"></ion-icon>
+                  <span>{{ tx.Pickup_Location }}</span>
+                </div>
+                <div class="tx-row-detail">
+                  <ion-icon name="receipt-outline" class="td-icon"></ion-icon>
+                  <span>Transaction ID: {{ tx.Transaction_ID }}</span>
+                </div>
+              </div>
+
+              <div class="tx-footer">
+                <div>
+                  <p class="tx-date-label">Transaction Date</p>
+                  <p class="tx-date">{{ formatDate(tx.Transaction_Date) }}</p>
+                </div>
+                <p class="tx-amount">₱{{ (Number(tx.Daily_Rate) * Number(tx.Rental_Duration)).toLocaleString() }}</p>
+              </div>
+            </div>
+          </div>
+
         </div>
+        <div style="height: 80px"></div>
       </div>
-
-      <!-- Empty -->
-      <div class="empty-state" v-if="filteredHistory.length === 0">
-        <div class="empty-icon">📊</div>
-        <div class="empty-title">No bookings found</div>
-        <div class="empty-sub">Try adjusting your filters.</div>
-      </div>
-
-      <div style="height: 80px"></div>
     </ion-content>
 
-    <!-- Filter Modal -->
-    <ion-modal :is-open="showFilterModal" @did-dismiss="showFilterModal = false" class="filter-modal">
-      <div class="modal-inner">
-        <div class="modal-handle"></div>
-        <h2 class="modal-title">Filter History</h2>
-
-        <div class="form-group">
-          <label class="form-label">Date Range</label>
-          <div class="range-options">
-            <div
-              v-for="r in dateRanges"
-              :key="r"
-              class="range-chip"
-              :class="{ active: selectedRange === r }"
-              @click="selectedRange = r"
-            >{{ r }}</div>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Specific Date</label>
-          <input v-model="specificDate" type="date" class="form-input" />
-        </div>
-
-        <div class="modal-actions">
-          <ion-button fill="outline" class="btn-reset" @click="resetFilters">Reset</ion-button>
-          <ion-button class="btn-apply" @click="showFilterModal = false">Apply Filters</ion-button>
-        </div>
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <div class="tab-item" @click="goTo('/dashboard')">
+        <ion-icon name="grid-outline"></ion-icon>
+        <span>Dashboard</span>
       </div>
-    </ion-modal>
+      <div class="tab-item" @click="goTo('/transaction-requests')">
+        <ion-icon name="receipt-outline"></ion-icon>
+        <span>Requests</span>
+      </div>
+      <div class="tab-item" @click="goTo('/post')">
+        <div class="plus-btn">
+          <ion-icon name="add-outline"></ion-icon>
+        </div>
+        <span>Post</span>
+      </div>
+      <div class="tab-item" @click="goTo('/listings')">
+        <ion-icon name="list-outline"></ion-icon>
+        <span>Listings</span>
+      </div>
+      <div class="tab-item active" @click="goTo('/booking-history')">
+        <ion-icon name="bar-chart-outline"></ion-icon>
+        <span>Reports</span>
+      </div>
+    </div>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { IonPage, IonContent, IonIcon, useIonRouter, onIonViewWillEnter } from '@ionic/vue'
+import { addIcons } from 'ionicons'
 import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
-  IonButton, IonContent, IonIcon, IonRefresher, IonRefresherContent, IonModal
-} from '@ionic/vue'
+  arrowBackOutline, searchOutline, carOutline,
+  calendarOutline, timeOutline, locationOutline,
+  receiptOutline, gridOutline, addOutline,
+  listOutline, barChartOutline
+} from 'ionicons/icons'
+import { transactionAPI } from '@/api'
 
-const showFilterModal = ref(false)
-const vehicleFilter = ref('All Vehicles')
-const selectedRange = ref('This Month')
-const specificDate = ref('')
-
-const vehicleFilters = ['All Vehicles', 'Toyota Vios', 'Honda City', 'Yamaha Mio', 'Toyota Innova']
-const dateRanges = ['Today', 'This Week', 'This Month', 'Last 3 Months', 'This Year']
-
-const summary = ref({
-  totalRevenue: 48500,
-  totalBookings: 34,
-  mostBooked: 'Vios 2022',
-  avgRating: '4.8',
+addIcons({
+  'arrow-back-outline': arrowBackOutline,
+  'search-outline': searchOutline,
+  'car-outline': carOutline,
+  'calendar-outline': calendarOutline,
+  'time-outline': timeOutline,
+  'location-outline': locationOutline,
+  'receipt-outline': receiptOutline,
+  'grid-outline': gridOutline,
+  'add-outline': addOutline,
+  'list-outline': listOutline,
+  'bar-chart-outline': barChartOutline,
 })
 
-interface HistoryItem {
-  id: number
-  vehicleName: string
-  emoji: string
-  renterName: string
-  startDate: string
-  endDate: string
-  days: number
-  pricePerDay: number
-  listedPrice: number
-  negotiated: boolean
-  totalAmount: number
-  status: 'done' | 'cancelled'
-  rating?: number
-  review?: string
+const router       = useIonRouter()
+const isLoading    = ref(false)
+const searchQuery  = ref('')
+const dateFrom     = ref('')
+const dateTo       = ref('')
+const statusFilter = ref('All')
+const allTransactions = ref<any[]>([])
+const filtered        = ref<any[]>([])
+
+const statusFilters = ['All', 'Pending', 'Confirmed', 'Ongoing', 'Completed', 'Cancelled']
+
+const currentUser = () => JSON.parse(localStorage.getItem('user') || '{}')
+const isOwnerView = computed(() => currentUser().role === 'Business_Owner')
+
+const hasActiveFilters = computed(() =>
+  searchQuery.value || dateFrom.value || dateTo.value || statusFilter.value !== 'All'
+)
+
+const totalRevenue = computed(() =>
+  filtered.value
+    .filter(tx => tx.Rental_Status === 'Completed')
+    .reduce((sum, tx) => sum + Number(tx.Daily_Rate) * Number(tx.Rental_Duration), 0)
+)
+
+const completedCount = computed(() =>
+  filtered.value.filter(tx => tx.Rental_Status === 'Completed').length
+)
+
+const applyFilters = () => {
+  let result = [...allTransactions.value]
+
+  // Keyword search
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    result = result.filter(tx =>
+      tx.Vehicle_Model?.toLowerCase().includes(q) ||
+      tx.Customer_Name?.toLowerCase().includes(q) ||
+      tx.Owner_Name?.toLowerCase().includes(q) ||
+      tx.Transaction_ID?.toLowerCase().includes(q) ||
+      tx.Pickup_Location?.toLowerCase().includes(q)
+    )
+  }
+
+  // Date From
+  if (dateFrom.value) {
+    result = result.filter(tx =>
+      new Date(tx.Transaction_Date) >= new Date(dateFrom.value)
+    )
+  }
+
+  // Date To
+  if (dateTo.value) {
+    result = result.filter(tx =>
+      new Date(tx.Transaction_Date) <= new Date(dateTo.value)
+    )
+  }
+
+  // Status
+  if (statusFilter.value !== 'All') {
+    result = result.filter(tx => tx.Rental_Status === statusFilter.value)
+  }
+
+  filtered.value = result
 }
 
-const history = ref<HistoryItem[]>([
-  {
-    id: 1001, vehicleName: 'Toyota Vios 2022', emoji: '🚗', renterName: 'Maria Santos',
-    startDate: 'May 20', endDate: 'May 23', days: 3,
-    pricePerDay: 750, listedPrice: 850, negotiated: true, totalAmount: 2250,
-    status: 'done', rating: 5, review: 'Great vehicle, very smooth ride!'
-  },
-  {
-    id: 1002, vehicleName: 'Honda City 2021', emoji: '🚙', renterName: 'Pedro Reyes',
-    startDate: 'May 15', endDate: 'May 16', days: 1,
-    pricePerDay: 900, listedPrice: 900, negotiated: false, totalAmount: 900,
-    status: 'done', rating: 4, review: 'Good condition, will rent again.'
-  },
-  {
-    id: 1003, vehicleName: 'Yamaha Mio 2023', emoji: '🏍️', renterName: 'Ana Cruz',
-    startDate: 'May 10', endDate: 'May 12', days: 2,
-    pricePerDay: 380, listedPrice: 400, negotiated: true, totalAmount: 760,
-    status: 'done', rating: 5, review: 'Perfect for city rides!'
-  },
-  {
-    id: 1004, vehicleName: 'Toyota Innova', emoji: '🚌', renterName: 'Jose Bautista',
-    startDate: 'May 5', endDate: 'May 6', days: 1,
-    pricePerDay: 1800, listedPrice: 1800, negotiated: false, totalAmount: 1800,
-    status: 'cancelled', rating: undefined, review: undefined
-  },
-  {
-    id: 1005, vehicleName: 'Toyota Vios 2022', emoji: '🚗', renterName: 'Liza Mendoza',
-    startDate: 'Apr 28', endDate: 'May 1', days: 3,
-    pricePerDay: 800, listedPrice: 850, negotiated: true, totalAmount: 2400,
-    status: 'done', rating: 4, review: 'Nice and clean!'
-  },
-])
-
-const filteredHistory = computed(() => {
-  return history.value.filter(h => {
-    if (vehicleFilter.value !== 'All Vehicles') {
-      return h.vehicleName.includes(vehicleFilter.value.split(' ')[1] || vehicleFilter.value)
-    }
-    return true
-  })
-})
-
-function statusLabel(status: string) {
-  return status === 'done' ? '✔ Done' : '❌ Cancelled'
+const clearFilters = () => {
+  searchQuery.value  = ''
+  dateFrom.value     = ''
+  dateTo.value       = ''
+  statusFilter.value = 'All'
+  filtered.value     = [...allTransactions.value]
 }
 
-function resetFilters() {
-  vehicleFilter.value = 'All Vehicles'
-  selectedRange.value = 'This Month'
-  specificDate.value = ''
-  showFilterModal.value = false
+const loadTransactions = async () => {
+  isLoading.value = true
+  try {
+    const res = await transactionAPI.getAll()
+    allTransactions.value = res.data.data ?? res.data
+    filtered.value        = [...allTransactions.value]
+  } catch (err) {
+    console.error('Failed to load transactions', err)
+  } finally {
+    isLoading.value = false
+  }
 }
 
-function doRefresh(event: any) {
-  setTimeout(() => event.target.complete(), 1000)
+const formatDate = (dt: string) => {
+  if (!dt) return '—'
+  return new Date(dt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+const statusBorderClass = (status: string) => {
+  const map: Record<string, string> = {
+    Pending: 'border-pending', Confirmed: 'border-confirmed',
+    Ongoing: 'border-ongoing', Completed: 'border-done', Cancelled: 'border-cancelled'
+  }
+  return map[status] || ''
+}
+
+const statusChipClass = (status: string) => {
+  const map: Record<string, string> = {
+    Pending: 'chip-pending', Confirmed: 'chip-confirmed',
+    Ongoing: 'chip-ongoing', Completed: 'chip-done', Cancelled: 'chip-cancelled'
+  }
+  return map[status] || ''
+}
+
+const goBack = () => router.push('/dashboard')
+const goTo   = (path: string) => router.push(path)
+
+onIonViewWillEnter(loadTransactions)
+onMounted(loadTransactions)
 </script>
 
 <style scoped>
-.page-content { --background: #f5f5f7; }
+.page {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  padding-bottom: 80px;
+}
+.bg-mobile {
+  display: block; position: absolute;
+  inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0; opacity: 0.9;
+}
+.bg-web {
+  display: none; position: absolute;
+  inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0; opacity: 0.9;
+}
+@media (min-width: 768px) {
+  .bg-mobile { display: none; }
+  .bg-web    { display: block; }
+}
+.container { position: relative; z-index: 1; padding: 48px 16px 20px; }
 
-.toolbar {
-  --background: #fff;
-  box-shadow: 0 1px 0 #eee;
+.post-header {
+  display: flex; align-items: center;
+  gap: 12px; margin-bottom: 16px;
 }
-.toolbar-title { font-size: 17px; font-weight: 800; color: #0f0f1a; }
-.back-btn { --color: #0f0f1a; }
-.filter-btn { --color: #00c896; }
+.back-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #ffffff; font-size: 20px; flex-shrink: 0;
+}
+.header-title {
+  font-family: 'Gil Sans MT', sans-serif;
+  color: #ffffff; font-size: 20px; font-weight: 700; margin: 0;
+}
 
-/* Summary */
-.summary-section { padding: 16px 16px 0; }
-.summary-scroll {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding-bottom: 4px;
+/* Glass Card */
+.glass-card {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 18px; padding: 14px; margin-bottom: 12px;
 }
-.summary-scroll::-webkit-scrollbar { display: none; }
 
-.summary-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 16px;
-  min-width: 110px;
-  text-align: center;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-  flex-shrink: 0;
+/* Filter Card */
+.filter-card { display: flex; flex-direction: column; gap: 12px; }
+.card-label {
+  font-family: 'Gil Sans MT', sans-serif;
+  font-size: 12px; font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin: 0;
 }
-.summary-card.highlight {
-  background: linear-gradient(135deg, #0f0f1a, #1e1e3a);
-  min-width: 130px;
-}
-.summary-card.highlight .sc-val { color: #00c896; }
-.summary-card.highlight .sc-label { color: rgba(255,255,255,0.5); }
-.summary-card.highlight .sc-icon { font-size: 28px; }
 
-.sc-icon { font-size: 22px; margin-bottom: 6px; }
-.sc-val { font-size: 18px; font-weight: 800; color: #0f0f1a; margin-bottom: 3px; }
-.sc-label { font-size: 11px; color: #999; }
+.search-row {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px; padding: 10px 14px;
+}
+.search-icon { color: rgba(255,255,255,0.5); font-size: 18px; flex-shrink: 0; }
+.search-input {
+  flex: 1; background: transparent; border: none;
+  outline: none; font-size: 14px; color: #ffffff;
+  font-family: 'Gil Sans MT', sans-serif;
+}
+.search-input::placeholder { color: rgba(255,255,255,0.3); }
 
-/* Filter Row */
-.filter-row {
-  display: flex;
-  align-items: center;
-  padding: 14px 16px 0;
-  gap: 10px;
+/* Date Row */
+.date-row { display: flex; align-items: center; gap: 8px; }
+.date-field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.df-label {
+  font-family: 'Gil Sans MT', sans-serif;
+  font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 600;
 }
-.filter-chips {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  flex: 1;
-  scrollbar-width: none;
+.date-arrow { font-size: 16px; color: rgba(255,255,255,0.4); flex-shrink: 0; }
+.input-field {
+  width: 100%;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px; padding: 8px 12px;
+  font-size: 13px; color: #ffffff; outline: none;
+  box-sizing: border-box; font-family: 'Gil Sans MT', sans-serif;
 }
-.filter-chips::-webkit-scrollbar { display: none; }
-.chip {
-  background: #f4f4f8;
-  border-radius: 20px;
-  padding: 7px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #555;
-  white-space: nowrap;
-  cursor: pointer;
-  border: 2px solid transparent;
+
+/* Status Pills */
+.status-filter-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.status-pill {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 16px; padding: 5px 12px;
+  font-size: 11px; font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer; font-family: 'Gil Sans MT', sans-serif;
   transition: all 0.2s;
-  flex-shrink: 0;
 }
-.chip.active { background: #e8fdf6; color: #00a87e; border-color: #00c896; }
+.pill-active { background: #b70b67; border-color: #b70b67; color: #ffffff; }
 
-.date-filter {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background: #f4f4f8;
-  border-radius: 12px;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #555;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
+.btn-clear {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 20px; padding: 7px 16px;
+  font-size: 12px; font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer; font-family: 'Gil Sans MT', sans-serif;
+  align-self: flex-start;
 }
-.date-filter ion-icon { color: #00c896; }
+
+/* Summary Row */
+.summary-row {
+  display: flex; align-items: center;
+  justify-content: space-around; padding: 12px 0;
+}
+.summary-item { text-align: center; }
+.sum-val {
+  font-family: 'Gil Sans MT', sans-serif;
+  font-size: 20px; font-weight: 800; color: #ffffff; margin: 0 0 3px;
+}
+.sum-val.pink { color: #fc89d0; }
+.sum-lbl { font-size: 11px; color: rgba(255,255,255,0.5); font-family: 'Gil Sans MT', sans-serif; }
+.sum-divider { width: 1px; height: 36px; background: rgba(255,255,255,0.15); }
 
 .results-label {
-  padding: 12px 20px 0;
-  font-size: 13px;
-  color: #999;
-  font-weight: 600;
+  font-family: 'Gil Sans MT', sans-serif;
+  font-size: 12px; color: rgba(255,255,255,0.5);
+  margin-bottom: 10px; font-weight: 600;
 }
 
-/* List */
-.list { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+/* Transaction Cards */
+.tx-card { border-left: 4px solid rgba(255,255,255,0.2); }
+.border-pending   { border-left-color: #f0c87c; }
+.border-confirmed { border-left-color: #fc89d0; }
+.border-ongoing   { border-left-color: #a8e07c; }
+.border-done      { border-left-color: rgba(255,255,255,0.3); }
+.border-cancelled { border-left-color: #ff9090; }
 
-.history-card {
-  background: #fff;
-  border-radius: 18px;
-  padding: 16px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+.tx-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.tx-icon {
+  width: 38px; height: 38px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px; display: flex;
+  align-items: center; justify-content: center;
+  font-size: 20px; color: rgba(255,255,255,0.6); flex-shrink: 0;
+}
+.tx-info { flex: 1; }
+.tx-vehicle {
+  font-family: 'Gil Sans MT', sans-serif;
+  font-size: 14px; font-weight: 700; color: #ffffff; margin: 0 0 2px;
+}
+.tx-person {
+  font-family: 'Gil Sans MT', sans-serif;
+  font-size: 12px; color: rgba(255,255,255,0.5); margin: 0;
 }
 
-.hc-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
+.status-chip {
+  border-radius: 10px; padding: 4px 10px;
+  font-size: 11px; font-weight: 700;
+  font-family: 'Gil Sans MT', sans-serif;
 }
-.hc-vehicle { display: flex; align-items: center; gap: 10px; }
-.hc-emoji {
-  width: 42px; height: 42px;
-  background: #f0f0f7;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  flex-shrink: 0;
-}
-.hc-vehicle-name { font-size: 15px; font-weight: 800; color: #0f0f1a; margin-bottom: 2px; }
-.hc-renter { font-size: 12px; color: #999; }
+.chip-pending   { background: rgba(240,200,124,0.2); color: #f0c87c; }
+.chip-confirmed { background: rgba(252,137,208,0.2); color: #fc89d0; }
+.chip-ongoing   { background: rgba(168,224,124,0.2); color: #a8e07c; }
+.chip-done      { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); }
+.chip-cancelled { background: rgba(255,144,144,0.2); color: #ff9090; }
 
-.hc-status {
-  border-radius: 10px;
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 700;
-}
-.hc-status.done      { background: #f0f0f5; color: #6b7280; }
-.hc-status.cancelled { background: #fde8e8; color: #e05555; }
+.tx-divider { height: 1px; background: rgba(255,255,255,0.1); margin-bottom: 10px; }
 
-.hc-divider { height: 1px; background: #f5f5f7; margin-bottom: 12px; }
+.tx-details { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.tx-row-detail {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Gil Sans MT', sans-serif;
+  font-size: 12px; color: rgba(255,255,255,0.6);
+}
+.td-icon { color: #fc89d0; font-size: 13px; flex-shrink: 0; }
 
-.hc-details { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; }
-.hc-detail-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 13px;
-  color: #555;
-  line-height: 1.4;
+.tx-footer {
+  display: flex; justify-content: space-between;
+  align-items: center; padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.1);
 }
-.hd-icon { color: #00c896; font-size: 14px; flex-shrink: 0; margin-top: 1px; }
-.hd-icon.star { color: #f5a623; }
-.negotiated-note { font-size: 11px; color: #0070f3; margin-left: 4px; }
+.tx-date-label {
+  font-family: 'Gil Sans MT', sans-serif;
+  font-size: 11px; color: rgba(255,255,255,0.4); margin: 0 0 2px;
+}
+.tx-date {
+  font-family: 'Gil Sans MT', sans-serif;
+  font-size: 13px; color: rgba(255,255,255,0.7); margin: 0;
+}
+.tx-amount {
+  font-family: 'Gil Sans MT', sans-serif;
+  font-size: 20px; font-weight: 800; color: #fc89d0; margin: 0;
+}
 
-.hc-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 10px;
-  border-top: 1px solid #f5f5f7;
+/* Empty / Center */
+.center-card {
+  display: flex; flex-direction: column;
+  align-items: center; padding: 40px 20px;
+  gap: 8px; text-align: center;
 }
-.hc-total { font-size: 20px; font-weight: 800; color: #0f0f1a; }
-.hc-booking-id { font-size: 12px; color: #bbb; }
+.center-txt  { font-size: 14px; color: rgba(255,255,255,0.6); font-family: 'Gil Sans MT', sans-serif; }
+.empty-icon  { font-size: 48px; }
+.empty-title { font-size: 16px; font-weight: 700; color: #ffffff; margin: 0; font-family: 'Gil Sans MT', sans-serif; }
+.empty-sub   { font-size: 13px; color: rgba(255,255,255,0.5); margin: 0; font-family: 'Gil Sans MT', sans-serif; }
 
-/* Empty */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 60px 32px;
-  text-align: center;
+/* Tab Bar */
+.tab-bar {
+  position: fixed; bottom: 0; left: 0; width: 100%;
+  background: rgba(20,10,30,0.92); backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex; justify-content: space-around;
+  padding: 10px 0; z-index: 100;
 }
-.empty-icon { font-size: 48px; margin-bottom: 12px; }
-.empty-title { font-size: 17px; font-weight: 800; color: #0f0f1a; margin-bottom: 6px; }
-.empty-sub { font-size: 14px; color: #999; }
-
-/* Modal */
-.filter-modal {
-  --border-radius: 28px 28px 0 0;
-  --height: auto;
-  align-items: flex-end;
+.tab-item {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px;
+  cursor: pointer; color: rgba(255,255,255,0.4);
+  font-size: 10px; font-family: 'Gil Sans MT', sans-serif;
 }
-.modal-inner {
-  background: #fff;
-  border-radius: 28px 28px 0 0;
-  padding: 16px 24px 48px;
+.tab-item ion-icon { font-size: 22px; }
+.tab-item.active { color: #fc89d0; }
+.plus-btn {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: #b70b67; display: flex;
+  align-items: center; justify-content: center;
+  margin-top: -24px; box-shadow: 0 4px 12px rgba(183,11,103,0.5);
 }
-.modal-handle {
-  width: 40px; height: 4px;
-  background: #e0e0e0;
-  border-radius: 2px;
-  margin: 0 auto 20px;
-}
-.modal-title { font-size: 20px; font-weight: 800; color: #0f0f1a; margin: 0 0 20px; }
-
-.form-group { margin-bottom: 20px; }
-.form-label { display: block; font-size: 13px; font-weight: 700; color: #333; margin-bottom: 10px; }
-
-.range-options { display: flex; flex-wrap: wrap; gap: 8px; }
-.range-chip {
-  background: #f4f4f8;
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #555;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: all 0.2s;
-}
-.range-chip.active { background: #e8fdf6; color: #00a87e; border-color: #00c896; }
-
-.form-input {
-  width: 100%;
-  background: #f4f4f8;
-  border: 2px solid transparent;
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 15px;
-  color: #0f0f1a;
-  outline: none;
-  box-sizing: border-box;
-}
-.form-input:focus { border-color: #00c896; }
-
-.modal-actions { display: flex; gap: 10px; }
-.btn-reset {
-  flex: 1;
-  --color: #555;
-  --border-color: #ddd;
-  --border-radius: 14px;
-  font-weight: 600;
-  height: 50px;
-}
-.btn-apply {
-  flex: 2;
-  --background: #00c896;
-  --color: #fff;
-  --border-radius: 14px;
-  font-weight: 700;
-  height: 50px;
-}
+.plus-btn ion-icon { font-size: 26px; color: #ffffff; }
 </style>

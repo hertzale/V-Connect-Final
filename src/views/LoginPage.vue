@@ -11,7 +11,6 @@
             <h1 class="title">LOGIN</h1>
             <p class="error-txt" v-if="errorMessage">{{ errorMessage }}</p>
 
-            <!--Email-->
             <div class="form-group">
               <label>Email</label>
               <div class="input-wrapper">
@@ -27,7 +26,9 @@
               <p class="forgot" @click="forgotPassword">Forgot Password</p>
             </div>
 
-            <button class="btn" @click="login">LOGIN</button>
+            <button class="btn" @click="login" :disabled="isLoading">
+              {{ isLoading ? 'Logging in...' : 'LOGIN' }}
+            </button>
             <p class="register-link" @click="goRegister">
               Create New Account
             </p>
@@ -46,13 +47,12 @@ import axios from 'axios'
 
 const router = useIonRouter()
 
-const email = ref('')
-const password = ref('')
+const email       = ref('')
+const password    = ref('')
 const errorMessage = ref('')
+const isLoading   = ref(false)
 
-const goRegister = () => {
-  router.push('/registeras')
-}
+const goRegister = () => router.push('/register-type')
 
 const login = async () => {
   if (!email.value || !password.value) {
@@ -60,20 +60,30 @@ const login = async () => {
     return
   }
 
+  isLoading.value = true
+  errorMessage.value = ''
+
   try {
     const res = await axios.post('http://localhost:3000/api/auth/login', {
       email: email.value,
       password: password.value
     })
 
-    // Save JWT token //READ THIS PLEASE
-    localStorage.setItem('token', res.data.data.token)
-    localStorage.setItem('user', JSON.stringify(res.data.data))
+    const user = res.data.data
+    localStorage.setItem('token', user.token)
+    localStorage.setItem('user', JSON.stringify(user))
 
-    // Redirect to home
-    router.push('/home')
+    // ── Redirect based on role ──────────────────────────
+    if (user.role === 'Business_Owner') {
+      router.push('/dashboard')
+    } else {
+      router.push('/home')
+    }
+
   } catch (err) {
     errorMessage.value = err.response?.data?.message || 'Login failed.'
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -88,49 +98,34 @@ const forgotPassword = () => {
   position: relative;
   overflow: hidden;
 }
-
 .bg-mobile {
   display: block;
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
   object-fit: cover;
   z-index: 0;
 }
-
 .bg-web {
   display: none;
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
   object-fit: cover;
   z-index: 0;
 }
-
 @media (min-width: 768px) {
-  .bg-mobile {
-    display: none;
-  }
-
-  .bg-web {
-    display: block;
-  }
+  .bg-mobile { display: none; }
+  .bg-web    { display: block; }
 }
-
 .logo {
   display: block;
   margin: 20px auto;
-  width: 100px;
-  height: 100px;
+  width: 100px; height: 100px;
   object-fit: contain;
   margin-bottom: 0px;
-  filter: drop-shadow(0 0 15px rgba(3, 3, 66, 0.7));
+  filter: drop-shadow(0 0 15px rgba(3,3,66,0.7));
 }
-
 .container {
   display: flex;
   flex-direction: column;
@@ -139,32 +134,38 @@ const forgotPassword = () => {
   min-height: 85vh;
   gap: 12px;
   padding: 20px;
-  margin-top: center;
+  position: relative;
+  z-index: 1;
 }
-
 .glass-panel {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255,255,255,0.25);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255,255,255,0.4);
   border-radius: 24px;
   padding: 20px 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
   width: 600px;
   max-width: 95%;
-
 }
-
 .title {
   font-family: 'Planet Kosmos', sans-serif;
   text-align: center;
   font-size: 50px;
   margin-bottom: 0px;
+  color: #ffffff;
 }
-
+.error-txt {
+  font-family: 'Gil Sans MT', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #ff6b6b;
+  text-align: center;
+  margin: 4px 0;
+}
 .form-group {
   display: flex;
   flex-direction: column;
@@ -174,7 +175,6 @@ const forgotPassword = () => {
   margin-left: 30px;
   margin-right: 30px;
 }
-
 .form-group label {
   font-family: 'Gil Sans MT', sans-serif;
   font-weight: 700;
@@ -182,7 +182,6 @@ const forgotPassword = () => {
   margin-top: 7px;
   color: aliceblue;
 }
-
 .input-wrapper {
   display: flex;
   align-items: center;
@@ -191,7 +190,6 @@ const forgotPassword = () => {
   padding: 5px 10px;
   gap: 10px;
 }
-
 .input-wrapper input {
   font-family: 'Gil Sans MT', sans-serif;
   border: none;
@@ -201,20 +199,15 @@ const forgotPassword = () => {
   background: transparent;
   color: #ffffff;
 }
-
+.input-wrapper input::placeholder { color: rgba(255,255,255,0.5); }
 .forgot {
   font-family: 'Gil Sans MT', sans-serif;
   text-align: right;
   font-size: 0.80rem;
-  color: #888;
+  color: rgba(255,255,255,0.6);
   cursor: pointer;
   margin-top: 4px;
 }
-
-.forgot:hover {
-  color: #1a1a2e;
-}
-
 .btn {
   width: 100%;
   max-width: 400px;
@@ -228,23 +221,19 @@ const forgotPassword = () => {
   letter-spacing: 2px;
   cursor: pointer;
   transition: background 0.2s;
+  margin-top: 12px;
 }
-
-.btn:hover {
-  background-color: #4263bc;
-}
-
+.btn:hover    { background-color: #fc89d0; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .register-link {
   font-size: 13px;
+  color: rgba(255,255,255,0.8);
+  cursor: pointer;
+  margin-top: 8px;
 }
-
-.bg-image {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 0;
+.register-link:hover { color: #fc89d0; }
+@media (min-width: 768px) {
+  .glass-panel { width: 420px; }
+  .title { font-size: 60px; }
 }
 </style>

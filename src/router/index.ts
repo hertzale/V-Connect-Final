@@ -1,5 +1,12 @@
 import { createRouter, createWebHistory } from "@ionic/vue-router";
 import { RouteRecordRaw } from "vue-router";
+import { requireAuth, requireOwner, requireCustomer } from './guard';
+
+declare module "*.vue" {
+  import type { DefineComponent } from "vue";
+  const component: DefineComponent<Record<string, never>, Record<string, never>, any>;
+  export default component;
+}
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -41,16 +48,19 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import("../views/BusinessListPage.vue"),
   },
   {
+    //hardoced
     path: "/business/:id",
     name: "BusinessDetail",
     component: () => import("../views/BusinessDetailPage.vue"),
   },
   {
+    //hardcoded
     path: "/vehicle/:id",
     name: "VehicleDetail",
     component: () => import("../views/VehicleDetailPage.vue"),
   },
   {
+    //hardcoded
     path: "/negotiate/:id?",
     name: "Negotiate",
     component: () => import("../views/NegotiatePage.vue"),
@@ -70,13 +80,18 @@ const routes: Array<RouteRecordRaw> = [
     name: "Profile",
     component: () => import("../views/ProfilePage.vue"),
   },
+  {
+    path: "/notifications",
+    name: "Notifications",
+    component: () => import("../views/NotificationsPage.vue"),
+  },
+  {
+    path: "/chat",
+    name: "Chats",
+    component: () => import("../views/ChatListPage.vue"),
+  },
 
   // ── Business Owner ────────────────────────────────────────
-  {
-    path: "/dashboard",
-    name: "Dashboard",
-    component: () => import("../views/BusinessDashboard.vue"),
-  },
   {
     path: "/post",
     name: "Post",
@@ -107,11 +122,29 @@ const routes: Array<RouteRecordRaw> = [
     name: "BusinessProfile",
     component: () => import("../views/BusinessProfilePage.vue"),
   },
+  {
+    path: "/dashboard",
+    name: "OwnerDashboard",
+    component: () => import("../views/OwnerDashboardPage.vue"),
+  },
 ];
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 });
+
+router.beforeEach((to, from, next) => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const role = user.role
+
+  if (to.path === '/dashboard' && role !== 'Business_Owner') {
+    next('/home')
+  } else if (to.path === '/home' && role === 'Business_Owner') {
+    next('/dashboard')
+  } else {
+    next()
+  }
+})
 
 export default router;

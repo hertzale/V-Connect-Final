@@ -6,8 +6,8 @@
           <ion-back-button default-href="/vehicle/1" text="" class="back-btn"></ion-back-button>
         </ion-buttons>
         <div class="toolbar-center">
-          <div class="toolbar-biz-name">AutoLux Rentals</div>
-          <div class="toolbar-vehicle">Toyota Vios 2022</div>
+          <div class="toolbar-biz-name">{{ ownerName }}</div>
+          <div class="toolbar-vehicle">{{ vehicleName }}</div>
         </div>
         <ion-buttons slot="end">
           <ion-button fill="clear" @click="showOfferModal = true">
@@ -20,8 +20,7 @@
       <div class="price-bar">
         <div class="price-bar-item">
           <span class="pb-label">Listed Price</span>
-          <span class="pb-val listed">₱850/day</span>
-        </div>
+          <span class="pb-val listed">₱{{ listedPrice }}/day</span>        </div>
         <ion-icon name="arrow-forward-outline" class="arrow-between"></ion-icon>
         <div class="price-bar-item">
           <span class="pb-label">Your Offer</span>
@@ -131,8 +130,8 @@
     <!-- Agreed Footer -->
     <ion-footer class="ion-no-border agreed-footer" v-if="agreedPrice">
       <div class="agreed-footer-inner">
-        <ion-button expand="block" class="btn-proceed" router-link="/booking">
-          Proceed to Booking · ₱{{ agreedPrice }}/day
+          <ion-button expand="block" class="btn-proceed" @click="goToBooking">
+            Proceed to Booking · ₱{{ agreedPrice }}/day
           <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
         </ion-button>
       </div>
@@ -143,8 +142,7 @@
       <div class="modal-inner">
         <div class="modal-handle"></div>
         <h2 class="modal-title">Make an Offer</h2>
-        <p class="modal-sub">Listed price is <strong>₱850/day</strong>. Enter your offer below.</p>
-
+        <p class="modal-sub">Listed price is <strong>₱{{ listedPrice }}/day</strong>. Enter your offer below.</p>
         <div class="form-group">
           <label class="form-label">Your Price (per day)</label>
           <div class="price-input-row">
@@ -193,10 +191,11 @@
 
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonButton, IonContent, IonFooter, IonIcon, IonTextarea,
-  IonModal
+  IonModal, useIonRouter
 } from '@ionic/vue'
 
 interface Message {
@@ -212,6 +211,14 @@ interface Message {
   status?: 'pending' | 'accepted' | 'declined'
 }
 
+const route = useRoute()
+const router = useIonRouter()
+const vehicleId = ref(route.query.vehicleId as string || '')
+const listedPrice = ref(Number(route.query.dailyRate) || 0)
+const withDriver = ref(Number(route.query.withDriver) || 0)
+const ownerName = ref(route.query.ownerName as string || 'AutoLux Rentals')
+const vehicleName = ref(route.query.vehicleName as string || 'Toyota Vios 2022')
+
 const inputText = ref('')
 const showOfferModal = ref(false)
 const offerAmount = ref('')
@@ -220,25 +227,15 @@ const offerEnd = ref('')
 const offerMessage = ref('')
 const currentOffer = ref('')
 const agreedPrice = ref('')
-const chatContent = ref()
+const chatContent = ref<any>(null)
 let msgId = 10
 
 const messages = ref<Message[]>([
   {
     id: 1, sender: 'owner', type: 'text',
-    text: 'Hi! Welcome to AutoLux Rentals. The Toyota Vios 2022 is available at ₱850/day. How can I help you?',
+    text: `Hi! Welcome to ${ownerName.value}. The ${vehicleName.value} is available at ₱${listedPrice.value}/day. How can I help you?`,
     time: '10:01 AM'
-  },
-  {
-    id: 2, sender: 'me', type: 'text',
-    text: 'Hi! I\'m interested in renting the Vios. Is there any flexibility on the price for 3 days?',
-    time: '10:02 AM'
-  },
-  {
-    id: 3, sender: 'owner', type: 'offer',
-    offerAmount: '800', offerDays: 3, offerStart: '2025-06-10', offerEnd: '2025-06-13',
-    time: '10:03 AM', status: 'pending'
-  },
+  }
 ])
 
 function getNow() {
@@ -248,6 +245,20 @@ function getNow() {
 function addMessage(text: string) {
   messages.value.push({ id: msgId++, sender: 'me', type: 'text', text, time: getNow() })
   scrollBottom()
+}
+
+function goToBooking() {
+  router.push({
+    path: '/booking',
+    query: {
+      vehicleId:   vehicleId.value,
+      vehicleName: vehicleName.value,
+      ownerName:   ownerName.value,
+      dailyRate:   agreedPrice.value,  // agreed price not listed
+      withDriver:  withDriver.value,
+      negotiated:  'true'
+    }
+  })
 }
 
 function sendMessage() {
@@ -261,6 +272,7 @@ function sendMessage() {
       text: 'Thank you for your message! Let me check availability.',
       time: getNow()
     })
+
     scrollBottom()
   }, 1000)
 }
@@ -659,3 +671,29 @@ async function scrollBottom() {
   height: 50px;
 }
 </style>
+
+<!-- Attributes called: 
+ ownerName - database (route query): The name of the vehicle owner
+ vehicleName - database (route query): The name or model of the vehicle
+ listedPrice - database (route query): The original listed price of the vehicle
+ currentOffer - local reactive state: The current offer amount in the negotiation
+ agreedPrice - local reactive state: The price that has been agreed upon
+ messages - local reactive state: Array of chat messages in the negotiation
+ inputText - local reactive state: The text input for sending a message
+ showOfferModal - local reactive state: Boolean to show/hide the offer modal
+ offerAmount - local reactive state: The amount of the offer being made
+ offerStart - local reactive state: Start date of the offer (rental period)
+ offerEnd - local reactive state: End date of the offer (rental period)
+ offerMessage - local reactive state: Message accompanying the offer
+ chatContent - local ref: Reference to the chat content element
+ vehicleId - database (route query): Unique ID of the vehicle
+ withDriver - database (route query): Whether the rental includes a driver
+ getNow - local helper function: Function to get current timestamp
+ addMessage - local function: Function to add a message to the chat
+ goToBooking - local function: Function to navigate to booking page
+ sendMessage - local function: Function to send a message
+ openOfferModal - local function: Function to open the offer modal
+ sendOffer - local function: Function to send an offer
+ acceptOffer - local function: Function to accept an offer
+ declineOffer - local function: Function to decline an offer
+ scrollBottom - local helper function: Function to scroll chat to bottom -->

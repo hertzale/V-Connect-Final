@@ -294,7 +294,17 @@ const goToBusiness = () => {
 
 const goToBooking = () => {
   if (!selectedDriver.value) return
-  router.push(`/booking?vehicleId=${vehicle.value.id}&driver=${selectedDriver.value}`)
+  router.push({
+    path: '/booking',
+    query: {
+      vehicleId: vehicle.value.id,
+      vehicleName: vehicle.value.name,
+      vehicleType: vehicle.value.type,
+      dailyRate: vehicle.value.price,
+      serviceFee: vehicle.value.serviceFee,
+      withDriver: selectedDriver.value
+    }
+  })
 }
 
 const goToNegotiate = () => {

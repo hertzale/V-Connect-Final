@@ -3,7 +3,7 @@
     <ion-header class="ion-no-border">
       <ion-toolbar class="booking-toolbar">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/vehicle/1" text="" class="back-btn"></ion-back-button>
+          <ion-back-button :default-href="`/vehicle/${vehicleId}`" text="" class="back-btn"></ion-back-button>
         </ion-buttons>
         <ion-title class="toolbar-title">Book Vehicle</ion-title>
       </ion-toolbar>
@@ -15,11 +15,11 @@
       <div class="vehicle-summary">
         <div class="vs-emoji">🚗</div>
         <div class="vs-info">
-          <div class="vs-name">Toyota Vios 2022</div>
-          <div class="vs-biz">AutoLux Rentals</div>
+          <div class="vs-name">{{ vehicleName }}</div>
+          <div class="vs-biz">{{ ownerName }}</div>
           <div class="vs-price">
-            <span class="price-highlighted">₱{{ agreedPrice || '850' }}</span>/day
-            <span v-if="agreedPrice" class="negotiated-tag">🤝 Negotiated</span>
+            <span class="price-highlighted">₱{{ agreedPrice }}</span>/day
+            <span v-if="isNegotiated" class="negotiated-tag">🤝 Negotiated</span>
           </div>
         </div>
       </div>
@@ -117,8 +117,8 @@
         <h2 class="card-title">Price Breakdown</h2>
 
         <div class="breakdown-row">
-          <span>₱{{ agreedPrice || 850 }} × {{ totalDays || 0 }} day(s)</span>
-          <span>₱{{ ((agreedPrice || 850) * (totalDays || 0)).toLocaleString() }}</span>
+          <span>₱{{ agreedPrice }} × {{ totalDays || 0 }} day(s)</span>
+          <span>₱{{ (agreedPrice * (totalDays || 0)).toLocaleString() }}</span>
         </div>
         <div class="breakdown-row" v-if="deliveryOption === 'delivery'">
           <span>Delivery Fee</span>
@@ -130,7 +130,11 @@
           <span class="total-val">₱{{ totalAmount.toLocaleString() }}</span>
         </div>
       </div>
-
+        <div class="section-card" v-if="errorMessage">
+          <p style="color: #e05555; font-size: 13px; margin: 0; font-family: 'Gil Sans MT', sans-serif;">
+            ⚠️ {{ errorMessage }}
+          </p>
+        </div>
       <div style="height: 120px"></div>
     </ion-content>
 
@@ -141,8 +145,8 @@
           <div class="ft-label">Total</div>
           <div class="ft-val">₱{{ totalAmount.toLocaleString() }}</div>
         </div>
-        <ion-button class="btn-confirm" @click="confirmBooking" :disabled="!canSubmit">
-          Confirm Booking
+        <ion-button class="btn-confirm" @click="confirmBooking" :disabled="!canSubmit || isLoading">
+            {{ isLoading ? 'Submitting...' : 'Confirm Booking' }}
           <ion-icon name="checkmark-circle-outline" slot="end"></ion-icon>
         </ion-button>
       </div>
@@ -153,16 +157,25 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton,
-  IonTitle, IonButton, IonContent, IonIcon, IonFooter
+  IonTitle, IonButton, IonContent, IonIcon, IonFooter, useIonRouter
 } from '@ionic/vue'
+import { transactionAPI } from '@/api'
 
-const router = useRouter()
+const router   = useIonRouter()
+const route    = useRoute()
 
-// Comes from negotiation (normally passed via route state/props)
-const agreedPrice = ref(750)
+// From NegotiatePage query params
+const vehicleId      = ref(route.query.vehicleId    as string || '')
+const vehicleName    = ref(route.query.vehicleName  as string || 'Vehicle')
+const ownerName      = ref(route.query.ownerName    as string || 'Owner')
+const agreedPrice    = ref(Number(route.query.dailyRate) || 0)
+const isNegotiated   = ref(route.query.negotiated === 'true')
+const withDriverOpt  = ref(Number(route.query.withDriver) || 0)
+const isLoading      = ref(false)
+const errorMessage   = ref('')
 
 const today = new Date().toISOString().split('T')[0]
 const startDate = ref('')
@@ -193,12 +206,39 @@ const totalAmount = computed(() => {
 })
 
 const canSubmit = computed(() =>
-  startDate.value && endDate.value && totalDays.value > 0 &&
-  driverName.value && driverPhone.value
+  vehicleId.value &&
+  startDate.value && endDate.value &&
+  totalDays.value > 0 &&
+  pickupTime.value
 )
 
-function confirmBooking() {
-  router.push('/transactions')
+async function confirmBooking() {
+  if (!canSubmit.value) return
+  isLoading.value = true
+  errorMessage.value = ''
+
+  const pickupLocation  = deliveryOption.value === 'pickup'
+    ? 'Self Pickup'
+    : deliveryAddress.value
+
+  const startDateTime = `${startDate.value} ${pickupTime.value}:00`
+  const endDateTime   = `${endDate.value} ${pickupTime.value}:00`
+
+  try {
+    await transactionAPI.create({
+      vehicle_id:            vehicleId.value,
+      start_date_and_time:   startDateTime,
+      end_date_and_time:     endDateTime,
+      pickup_location:       pickupLocation,
+      drop_off_location:     pickupLocation,
+      with_driver:           withDriverOpt.value === 1 ? 1 : 0,
+    })
+    router.push('/transactions')
+  } catch (err: any) {
+    errorMessage.value = err.response?.data?.message || 'Booking failed. Try again.'
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
