@@ -1,86 +1,156 @@
-import axios from 'axios'
+import { createRouter, createWebHistory } from "@ionic/vue-router";
+import { RouteRecordRaw } from "vue-router";
+import { requireAuth, requireOwner } from './guard';
 
-const api = axios.create({
-  baseURL: 'http://localhost:3000'
-})
+const routes: Array<RouteRecordRaw> = [
+  {
+    path: "/",
+    redirect: "/welcome",
+  },
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  // ── Public ────────────────────────────────────────────────
+  {
+    path: "/welcome",
+    name: "Landing",
+    component: () => import("../views/LandingPage.vue"),
+  },
+  {
+    path: "/login",
+    name: "Login",
+    component: () => import("../views/LoginPage.vue"),
+  },
+  {
+    path: "/register-type",
+    name: "RegisterType",
+    component: () => import("../views/RegisterTypePage.vue"),
+  },
+  {
+    path: "/register",
+    name: "Register",
+    component: () => import("../views/RegisterPage.vue"),
+  },
+
+  // ── Customer ──────────────────────────────────────────────
+  {
+    path: "/home",
+    name: "Home",
+    component: () => import("../views/HomePage.vue"),
+    beforeEnter: requireAuth
+
+  },
+  {
+    //hardoced
+    path: "/business/:id",
+    name: "BusinessDetail",
+    component: () => import("../views/BusinessDetailPage.vue"),
+    beforeEnter: requireAuth
+  },
+  {
+    //hardcoded
+    path: "/vehicle/:id",
+    name: "VehicleDetail",
+    component: () => import("../views/VehicleDetailPage.vue"),
+    beforeEnter: requireAuth
+  },
+  {
+    //hardcoded
+    path: "/negotiate/:id?",
+    name: "Negotiate",
+    component: () => import("../views/NegotiatePage.vue"),
+    beforeEnter: requireAuth
+  },
+  {
+    path: "/booking",
+    name: "Booking",
+    component: () => import("../views/BookingPage.vue"),
+    beforeEnter: requireAuth
+  },
+  {
+    path: "/transactions",
+    name: "Transactions",
+    component: () => import("../views/TransactionPage.vue"),
+    beforeEnter: requireAuth
+  },
+  {
+    path: "/profile",
+    name: "Profile",
+    component: () => import("../views/ProfilePage.vue"),
+    beforeEnter: requireAuth
+  },
+  {
+    path: "/notifications",
+    name: "Notifications",
+    component: () => import("../views/NotificationsPage.vue"),
+    beforeEnter: requireAuth
+  },
+  {
+    path: "/chat",
+    name: "Chats",
+    component: () => import("../views/ChatListPage.vue"),
+    beforeEnter: requireAuth
+  },
+
+  // ── Business Owner ────────────────────────────────────────
+  {
+    path: "/post",
+    name: "Post",
+    component: () => import("../views/PostPage.vue"),
+    beforeEnter: requireOwner
+  },
+  {
+    path: "/edit-vehicle/:id",
+    name: "EditVehicle",
+    component: () => import("../views/EditPage.vue"),
+    beforeEnter: requireOwner
+  },
+  {
+    path: "/listings",
+    name: "Listings",
+    component: () => import("../views/ListingsPage.vue"),
+    beforeEnter: requireOwner
+  },
+  {
+    path: "/transaction-requests",
+    name: "TransactionRequests",
+    component: () => import("../views/TransactionRequestsPage.vue"),
+    beforeEnter: requireOwner
+  },
+  {
+    path: "/booking-history",
+    name: "BookingHistory",
+    component: () => import("../views/BookingHistoryPage.vue"),
+    beforeEnter: requireOwner
+  },
+  {
+    path: "/business-profile",
+    name: "BusinessProfile",
+    component: () => import("../views/BusinessProfilePage.vue"),
+    beforeEnter: requireOwner
+  },
+  {
+    path: "/owner-dashboard",
+    name: "OwnerDashboard",
+    component: () => import("../views/OwnerDashboardPage.vue"),
+    beforeEnter: requireOwner
+  },
+];
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes,
+});
+
+router.beforeEach((to, from, next) => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const role = user.role
+
+  if (to.path === '/dashboard' && role !== 'Business_Owner') {
+    next('/home')
+  } else if (to.path === '/home' && role === 'Business_Owner') {
+    next('/dashboard')
+  } else {
+    next()
   }
-  return config
 })
 
-// ── Auth ──────────────────────────────────────────────────
-export const authAPI = {
-  login:    (data: any) => api.post('/api/auth/login', data),
-  register: (data: any) => api.post('/api/auth/register', data)
-}
-
-// ── Vehicles ──────────────────────────────────────────────
-export const vehicleAPI = {
-  getAll:       (type?: string) => api.get('/api/vehicles', { params: { type } }),
-  getMy:        ()              => api.get('/api/vehicles/my'),
-  getOne:       (id: string)    => api.get(`/api/vehicles/${id}`),
-  post:         (data: any)     => api.post('/api/vehicles', data),
-  update:       (id: string, data: any) => api.put(`/api/vehicles/${id}`, data),
-  updateStatus: (id: string, status: string) =>
-    api.patch(`/api/vehicles/${id}/status`, { status }),
-  delete: (id: string) => api.delete(`/api/vehicles/${id}`)
-}
-
-// ── Transactions ──────────────────────────────────────────
-// Based on confirmed routes in transactions.js:
-// GET    /api/transactions         → getAll (both customer + owner)
-// GET    /api/transactions/:id     → getOne
-// POST   /api/transactions         → create booking
-// PATCH  /api/transactions/:id/status → updateStatus (Confirmed/Cancelled/Ongoing/Completed)
-export const transactionAPI = {
-  getAll: () => api.get('/api/transactions'),
-
-  getOne: (id: string) => api.get(`/api/transactions/${id}`),
-
-  create: (data: {
-    vehicle_id: string
-    start_date_and_time: string   // format: "2025-06-10 08:00:00"
-    end_date_and_time: string     // format: "2025-06-13 08:00:00"
-    pickup_location: string
-    drop_off_location: string
-    with_driver: number           // 0 = self-drive, 1 = with driver
-  }) => api.post('/api/transactions', data),
-
-  // ⚠️ correct endpoint is PATCH /:id/status NOT /:id/respond
-  updateStatus: (id: string, status: 'Confirmed' | 'Cancelled' | 'Ongoing' | 'Completed') =>
-    api.patch(`/api/transactions/${id}/status`, { status }),
-}
-
-// ── Persons / Profile ─────────────────────────────────────
-// Based on confirmed routes in persons.js:
-// GET /api/persons/me      → get own profile
-// PUT /api/persons/me      → update own profile
-// GET /api/persons/:id     → get other user's basic info
-export const personAPI = {
-  getMe: () => api.get('/api/persons/me'),
-
-  updateMe: (data: {
-    name: string
-    address: string
-    contact_number: string
-    drivers_license?: string
-  }) => api.put('/api/persons/me', data),
-
-  getOne: (id: string) => api.get(`/api/persons/${id}`)
-}
-
-// ── Business ──────────────────────────────────────────────
-// ⚠️ No businesses.js route file found in backend yet
-// Using mock fallback so app doesn't crash
-// Remove mock and uncomment real calls once backend adds the route
-export const businessAPI = {
-  getAll:      () => api.get('/api/businesses'),
-  getOne:      (id: string) => api.get(`/api/businesses/${id}`),
-  getVehicles: (id: string) => api.get(`/api/businesses/${id}/vehicles`),
-}
-
-export default api
+export default router;
