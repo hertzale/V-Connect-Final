@@ -152,7 +152,7 @@
 
     <!-- Tab Bar -->
     <div class="tab-bar">
-      <div class="tab-item" @click="goTo('/owner-dashboard')">
+      <div class="tab-item" @click="goTo('/dashboard')">
         <ion-icon name="grid-outline"></ion-icon>
         <span>Dashboard</span>
       </div>
@@ -311,7 +311,7 @@ const statusChipClass = (status: string) => {
   return map[status] || ''
 }
 
-const goBack = () => router.push('/owner-dashboard')
+const goBack = () => router.push('/dashboard')
 const goTo   = (path: string) => router.push(path)
 
 onIonViewWillEnter(loadTransactions)

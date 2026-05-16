@@ -7,7 +7,7 @@ const routes: Array<RouteRecordRaw> = [
     path: "/",
     redirect: "/welcome",
   },
-
+ 
   // ── Public ────────────────────────────────────────────────
   {
     path: "/welcome",
@@ -20,7 +20,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import("../views/LoginPage.vue"),
   },
   {
-    path: "/register-type",
+    path: "/registeras",       // ← matches your RegisterTypePage link
     name: "RegisterType",
     component: () => import("../views/RegisterTypePage.vue"),
   },
@@ -29,7 +29,7 @@ const routes: Array<RouteRecordRaw> = [
     name: "Register",
     component: () => import("../views/RegisterPage.vue"),
   },
-
+ 
   // ── Customer ──────────────────────────────────────────────
   {
     path: "/home",
@@ -37,19 +37,16 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import("../views/HomePage.vue"),
   },
   {
-    //hardoced
     path: "/business/:id",
     name: "BusinessDetail",
     component: () => import("../views/BusinessDetailPage.vue"),
   },
   {
-    //hardcoded
     path: "/vehicle/:id",
     name: "VehicleDetail",
     component: () => import("../views/VehicleDetailPage.vue"),
   },
   {
-    //hardcoded
     path: "/negotiate/:id?",
     name: "Negotiate",
     component: () => import("../views/NegotiatePage.vue"),
@@ -79,8 +76,13 @@ const routes: Array<RouteRecordRaw> = [
     name: "Chats",
     component: () => import("../views/ChatListPage.vue"),
   },
-
+ 
   // ── Business Owner ────────────────────────────────────────
+  {
+    path: "/dashboard",        // ← fixed from /owner-dashboard
+    name: "Dashboard",
+    component: () => import("../views/OwnerDashboardPage.vue"), // ← fixed from OwnerDashboardPage
+  },
   {
     path: "/post",
     name: "Post",
@@ -110,11 +112,6 @@ const routes: Array<RouteRecordRaw> = [
     path: "/business-profile",
     name: "BusinessProfile",
     component: () => import("../views/BusinessProfilePage.vue"),
-  },
-  {
-    path: "/owner-dashboard",
-    name: "OwnerDashboard",
-    component: () => import("../views/OwnerDashboardPage.vue"),
   },
 ];
 

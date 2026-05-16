@@ -223,7 +223,7 @@ const deleteVehicle = async (id: string) => {
   }
 }
 
-const goBack = () => router.push('/owner-dashboard')
+const goBack = () => router.push('/dashboard')
 const goToPost = () => router.push('/post')
 const goTo = (path: string) => router.push(path)
 </script>
