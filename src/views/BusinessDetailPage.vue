@@ -184,8 +184,11 @@ async function loadBusiness() {
   }
 }
 
-function goToVehicle(id: string) {
-  router.push(`/vehicle/${id}`)
+function goToVehicle(vehicle: any) {
+  router.push({
+    path: `/vehicle/${vehicle.Vehicle_ID}`,
+    query: { businessId: vehicle.Business_ID }
+  })
 }
 
 onMounted(loadBusiness)

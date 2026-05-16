@@ -92,11 +92,15 @@
                   v-if="tx.Rental_Status === 'Completed'"
                   fill="outline"
                   size="small"
-                  class="btn-review"
-                  @click.stop="openReview(tx)"
+                  :class="hasSubmittedFeedback(tx.Transaction_ID) ? 'btn-reviewed' : 'btn-review'"
+                  @click.stop="!hasSubmittedFeedback(tx.Transaction_ID) && openReview(tx)"
+                  :disabled="hasSubmittedFeedback(tx.Transaction_ID)"
                 >
-                  <ion-icon name="star-outline" slot="start"></ion-icon>
-                  Review
+                  <ion-icon
+                    :name="hasSubmittedFeedback(tx.Transaction_ID) ? 'star' : 'star-outline'"
+                    slot="start"
+                  ></ion-icon>
+                  {{ hasSubmittedFeedback(tx.Transaction_ID) ? 'Reviewed ✅' : 'Review' }}
                 </ion-button>
                 <ion-button
                   v-if="tx.Rental_Status === 'Completed'"
@@ -129,6 +133,7 @@ const router = useIonRouter()
 const activeTab = ref('Pending')               
 const transactions = ref<any[]>([])
 const isLoading = ref(false)
+const submittedFeedbacks = ref<Set<string>>(new Set())
 
 const tabs = [
   { key: 'Pending',   label: 'Upcoming' },
@@ -143,9 +148,12 @@ const filteredTransactions = computed(() =>
   transactions.value.filter(t => t.Rental_Status === activeTab.value)
 )
 
+
+
 function countFor(status: string) {
   return transactions.value.filter(t => t.Rental_Status === status).length
 }
+
 
 function statusLabel(status: string) {
   const map: Record<string, string> = {
@@ -194,7 +202,20 @@ function cancelTransaction(tx: any) {
 }
 
 function openReview(tx: any) {
-  router.push(`/review/${tx.Transaction_ID}`)
+  router.push({
+    path: `/feedback/${tx.Transaction_ID}`,
+    query: {
+      transactionId: tx.Transaction_ID,
+      vehicleId:     tx.Vehicle_ID,
+      vehicleName:   tx.Vehicle_Model,
+      bizName:       tx.Business_Name,
+      rentalDates:   `${tx.Start_Date} → ${tx.End_Date}`
+    }
+  })
+}
+
+function hasSubmittedFeedback(transactionId: string) {
+  return submittedFeedbacks.value.has(transactionId)
 }
 
 function rebookVehicle(tx: any) {
@@ -205,12 +226,29 @@ function doRefresh(event: any) {
   loadTransactions().then(() => event.target.complete())
 }
 
-onIonViewWillEnter(loadTransactions)
+onIonViewWillEnter(async () => {
+  await loadTransactions()
+
+  // Load submitted feedbacks from localStorage
+  const saved = localStorage.getItem('submittedFeedbacks')
+  if (saved) {
+    submittedFeedbacks.value = new Set(JSON.parse(saved))
+  }
+})
+
 onMounted(loadTransactions)
 </script>
 
 <style scoped>
 .page-content { --background: #f5f5f7; }
+
+.btn-reviewed {
+  --color: #6b7280;
+  --border-color: #6b7280;
+  --border-radius: 10px;
+  font-weight: 700;
+  height: 34px;
+}
 
 .tx-toolbar {
   --background: #fff;

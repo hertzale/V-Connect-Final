@@ -15,13 +15,17 @@
     </ion-header>
 
     <ion-content class="page-content">
+      <div v-if="isLoading" style="padding: 40px; text-align:center; color:#999">
+        Loading...
+      </div>
 
+      <div v-else-if="vehicle">
       <!-- Image / Emoji -->
       <div class="vehicle-hero">
         <div class="vehicle-emoji">{{ vehicle.emoji }}</div>
-        <div class="avail-badge" :class="vehicle.available ? 'avail' : 'unavail'">
-          <ion-icon :name="vehicle.available ? 'checkmark-circle' : 'close-circle'"></ion-icon>
-          {{ vehicle.available ? 'Available Now' : 'Currently Booked' }}
+        <div class="avail-badge" :class="vehicle.Vehicle_Status === 'Available' ? 'avail' : 'unavail'">
+          <ion-icon :name="vehicle.Vehicle_Status === 'Available' ? 'checkmark-circle' : 'close-circle'"></ion-icon>
+          {{ vehicle.Vehicle_Status === 'Available' ? 'Available Now' : 'Currently Booked' }}
         </div>
       </div>
 
@@ -29,11 +33,11 @@
       <div class="info-card">
         <div class="info-top">
           <div>
-            <h1 class="vehicle-name">{{ vehicle.name }}</h1>
-            <div class="vehicle-type-tag">{{ vehicle.type }}</div>
+            <h1 class="vehicle-name">{{ vehicle.Vehicle_Model }}</h1>
+            <div class="vehicle-type-tag">{{ vehicle.Vehicle_Type }}</div>
           </div>
           <div class="price-block">
-            <div class="price-val">₱{{ vehicle.price }}</div>
+            <div class="price-val">₱{{ vehicle.Daily_Rate }}</div>
             <div class="price-unit">per day</div>
           </div>
         </div>
@@ -51,39 +55,12 @@
           <div class="spec-item">
             <ion-icon name="people-outline" class="spec-icon"></ion-icon>
             <div class="spec-label">Seats</div>
-            <div class="spec-val">{{ vehicle.seats }}</div>
-          </div>
-          <div class="spec-item">
-            <ion-icon name="settings-outline" class="spec-icon"></ion-icon>
-            <div class="spec-label">Transmission</div>
-            <div class="spec-val">{{ vehicle.transmission }}</div>
+            <div class="spec-val">{{ vehicle.Seat_Capacity }}</div>
           </div>
           <div class="spec-item">
             <ion-icon name="water-outline" class="spec-icon"></ion-icon>
             <div class="spec-label">Fuel</div>
-            <div class="spec-val">{{ vehicle.fuel }}</div>
-          </div>
-          <div class="spec-item">
-            <ion-icon name="speedometer-outline" class="spec-icon"></ion-icon>
-            <div class="spec-label">Year</div>
-            <div class="spec-val">{{ vehicle.year }}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Description -->
-      <div class="section">
-        <h2 class="section-title">Description</h2>
-        <p class="desc-text">{{ vehicle.description }}</p>
-      </div>
-
-      <!-- Inclusions -->
-      <div class="section">
-        <h2 class="section-title">Inclusions</h2>
-        <div class="inclusions">
-          <div v-for="item in vehicle.inclusions" :key="item" class="inclusion-item">
-            <ion-icon name="checkmark-outline" class="check-icon"></ion-icon>
-            {{ item }}
+            <div class="spec-val">{{ vehicle.Fuel_Type }}</div>
           </div>
         </div>
       </div>
@@ -171,20 +148,19 @@
       </div>
 
       <div style="height: 120px"></div>
+      </div>
     </ion-content>
 
     <!-- Footer Actions -->
     <ion-footer class="ion-no-border footer-bar">
-
-      <!-- Price Summary -->
-      <div class="price-summary" v-if="selectedDriver">
+      <div class="price-summary" v-if="selectedDriver && vehicle">
         <div class="price-summary-row">
           <span>Base rate</span>
-          <span>₱{{ vehicle.price }}/day</span>
+          <span>₱{{ vehicle?.Daily_Rate }}/day</span>
         </div>
         <div class="price-summary-row" v-if="selectedDriver === 'with'">
           <span>Service fee</span>
-          <span class="fee-text">+ ₱{{ vehicle.serviceFee }}</span>
+          <span class="fee-text">+ ₱0</span>
         </div>
         <div class="price-summary-total">
           <span>Total per day</span>
@@ -198,7 +174,7 @@
           fill="outline"
           class="btn-negotiate"
           @click="goToNegotiate"
-          :disabled="!vehicle.available || !selectedDriver || (selectedDriver === 'without' && !hasLicense)"
+          :disabled="!vehicle || vehicle.Vehicle_Status !== 'Available' || !selectedDriver || (selectedDriver === 'without' && !hasLicense)"
         >
           <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
           Negotiate
@@ -207,9 +183,9 @@
           expand="block"
           class="btn-book"
           @click="goToBooking"
-          :disabled="!vehicle.available || !selectedDriver || (selectedDriver === 'without' && !hasLicense)"
+          :disabled="!vehicle || vehicle.Vehicle_Status !== 'Available' || !selectedDriver || (selectedDriver === 'without' && !hasLicense)"
         >
-          Book Now
+          Rent Now
           <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
         </ion-button>
       </div>
@@ -224,21 +200,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useIonRouter } from '@ionic/vue'
+import { ref, computed, onMounted } from 'vue'
+import { useIonRouter, onIonViewWillEnter } from '@ionic/vue'
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonTitle, IonButton, IonContent, IonIcon, IonFooter
 } from '@ionic/vue'
+import { useRoute } from 'vue-router'
+import { vehicleAPI } from '@/api'
 
 const router = useIonRouter()
+const route = useRoute()
 
 // Check if user has license
 const hasLicense = computed(() => {
   const savedUser = localStorage.getItem('user')
   if (savedUser) {
     const user = JSON.parse(savedUser)
-    return !!user.drivers_license
+    return !!user.Drivers_License
   }
   return false
 })
@@ -252,65 +231,69 @@ const selectDriver = (option: string) => {
 
 // Price calculation
 const totalPrice = computed(() => {
-  const base = parseInt(vehicle.value.price)
-  const fee = parseInt(vehicle.value.serviceFee)
+  if (!vehicle.value) return 0
+  const base = Number(vehicle.value.Daily_Rate)
+  const fee = 0
   if (selectedDriver.value === 'with') {
     return base + fee
   }
   return base
+
 })
 
-const vehicle = ref({
-  id: 1,
-  name: 'Toyota Vios 2022',
-  emoji: '🚗',
-  type: 'Sedan',
-  price: '850',
-  serviceFee: '150', // ← service fee for with driver
-  rating: '4.8',
-  reviews: 47,
-  rentals: 123,
-  available: true,
-  seats: 5,
-  transmission: 'Automatic',
-  fuel: 'Gasoline',
-  year: '2022',
-  description: 'A reliable and fuel-efficient sedan perfect for city driving or out-of-town trips. Well-maintained with regular servicing. Clean interior with AC, Bluetooth audio, and reverse camera.',
-  inclusions: [
-    'Unlimited mileage (Makati area)',
-    'Full tank on pickup',
-    'Comprehensive insurance',
-    'Free roadside assistance',
-    '24/7 support',
-  ],
-  businessName: 'AutoLux Rentals',
-  businessRating: '4.8',
-  businessLocation: 'Makati City',
-})
+// VehicleDetailPage should call this on mount
+const vehicle = ref<any>(null)
+const isLoading = ref(true)
 
-const goToBusiness = () => {
-  router.push('/business/1')
+async function loadVehicle() {
+  isLoading.value = true
+  try {
+    const res = await vehicleAPI.getOne(route.params.id as string)
+    vehicle.value = res.data.data ?? res.data
+  } catch (e) {
+    console.error('Failed to load vehicle', e)
+  } finally {
+    isLoading.value = false
+  }
 }
+
 
 const goToBooking = () => {
   if (!selectedDriver.value) return
   router.push({
     path: '/booking',
     query: {
-      vehicleId: vehicle.value.id,
-      vehicleName: vehicle.value.name,
-      vehicleType: vehicle.value.type,
-      dailyRate: vehicle.value.price,
-      serviceFee: vehicle.value.serviceFee,
-      withDriver: selectedDriver.value
+      vehicleId: vehicle.value.Vehicle_ID,
+      vehicleName: vehicle.value.Vehicle_Model,
+      vehicleType: vehicle.value.Vehicle_Type,
+      dailyRate: vehicle.value.Daily_Rate,
+      withDriver: selectedDriver.value === 'with' ? '1' : '0',
     }
   })
 }
 
 const goToNegotiate = () => {
   if (!selectedDriver.value) return
-  router.push(`/negotiate?vehicleId=${vehicle.value.id}&driver=${selectedDriver.value}`)
+  router.push({
+    path: '/negotiate',
+    query: {
+      vehicleId:          vehicle.value.Vehicle_ID,
+      vehicleName:        vehicle.value.Vehicle_Model,
+      dailyRate:          String(vehicle.value.Daily_Rate),
+      ownerName:          vehicle.value.Business_Name,
+      withDriver:         selectedDriver.value === 'with' ? '1' : '0',
+      ownerAccountId:     vehicle.value.Owner_Account_ID,
+      customerAccountId:  JSON.parse(localStorage.getItem('user') || '{}').Account_ID || '',
+    }
+  })
 }
+
+
+const goToBusiness = () => {
+  router.push(`/business/${vehicle.value.Business_ID}`)
+}
+onMounted(loadVehicle)
+onIonViewWillEnter(loadVehicle)
 </script>
 
 <style scoped>

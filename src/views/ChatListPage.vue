@@ -86,7 +86,7 @@
     <!-- TAB BAR -->
     <div class="tab-bar">
             <!--Customer Tabs-->
-      <template v-if="userRole === 'Customer'">
+      <template v-if="userRole?.toLowerCase() === 'customer'">
         <div class="tab-item" @click="goTo('/home')">
           <ion-icon name="grid-outline"></ion-icon>
           <span>Home</span>
@@ -165,7 +165,7 @@ const router = useIonRouter()
 const searchQuery = ref('')
 const isLoading = ref(false)
 const chats = ref<any[]>([])
-const userRole = ref(localStorage.getItem('user_role') || 'Customer')
+const userRole = ref('')
 
 const filteredChats = computed(() =>
   chats.value.filter(c =>
@@ -198,11 +198,9 @@ function loadUserRole() {
     const user = JSON.parse(savedUser)
 
     // adjust this depending on your backend field
-    userRole.value =
-      user.Role ||
-      user.Account_Role ||
-      user.User_Role ||
-      ''
+    userRole.value = user.Role || ''
+
+    console.log('USER ROLE:', userRole.value)
   }
 }
 
