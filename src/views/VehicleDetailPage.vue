@@ -224,20 +224,14 @@
 </template>
 
 <script setup lang="ts">
-// ── REPLACE YOUR ENTIRE <script setup> WITH THIS ──────────
-
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { useIonRouter, onIonViewWillEnter } from '@ionic/vue'
+import { ref, computed } from 'vue'
+import { useIonRouter } from '@ionic/vue'
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonTitle, IonButton, IonContent, IonIcon, IonFooter
 } from '@ionic/vue'
-import { vehicleAPI } from '@/api'
 
 const router = useIonRouter()
-const route  = useRoute()
-const id     = route.params.id as string
 
 // Check if user has license
 const hasLicense = computed(() => {
@@ -251,108 +245,51 @@ const hasLicense = computed(() => {
 
 // Driver option selection
 const selectedDriver = ref('')
+
 const selectDriver = (option: string) => {
   selectedDriver.value = option
-}
-
-// Vehicle data — loads from API, falls back to mock if backend is down
-const vehicle = ref<any>({
-  id: '',
-  name: '',
-  emoji: '🚗',
-  type: '',
-  price: '0',
-  serviceFee: '150',
-  rating: '4.8',
-  reviews: 0,
-  rentals: 0,
-  available: true,
-  seats: 0,
-  transmission: '',
-  fuel: '',
-  year: '',
-  description: '',
-  inclusions: [],
-  businessName: '',
-  businessRating: '4.8',
-  businessLocation: '',
-  With_Driver: 2, // 0=self only, 1=driver only, 2=both
-  Owner_Account_ID: '',
-})
-
-const loadVehicle = async () => {
-  try {
-    const res = await vehicleAPI.getOne(id)
-    const v   = res.data.data ?? res.data
-
-    // Map backend columns to what template uses
-    vehicle.value = {
-      id:               v.Vehicle_ID,
-      name:             v.Vehicle_Model,
-      emoji:            '🚗',
-      type:             v.Vehicle_Type,
-      price:            v.Daily_Rate,
-      serviceFee:       '150',
-      rating:           '4.8',
-      reviews:          0,
-      rentals:          0,
-      available:        v.Vehicle_Status === 'Available',
-      seats:            v.Seat_Capacity,
-      transmission:     v.Transmission || 'Automatic',
-      fuel:             v.Fuel_Type || 'Gasoline',
-      year:             v.Registration_Date?.substring(0, 4) || '—',
-      description:      `${v.Vehicle_Model} - ${v.Vehicle_Type} available for rent.`,
-      inclusions:       ['Full tank on pickup', 'Comprehensive insurance', '24/7 support'],
-      businessName:     v.Owner_Name || 'Vehicle Owner',
-      businessRating:   '4.8',
-      businessLocation: v.Owner_Address || 'Naga City',
-      With_Driver:      Number(v.With_Driver ?? 2),
-      Owner_Account_ID: v.Owner_Account_ID,
-    }
-
-    // Auto-select driver option if only one available
-    if (vehicle.value.With_Driver === 0) selectedDriver.value = 'without'
-    if (vehicle.value.With_Driver === 1) selectedDriver.value = 'with'
-
-  } catch (err) {
-    console.error('Failed to load vehicle, using mock data', err)
-    // Mock fallback so page still shows during demo
-    vehicle.value = {
-      id:               id,
-      name:             'Toyota Vios 2022',
-      emoji:            '🚗',
-      type:             'Sedan',
-      price:            '850',
-      serviceFee:       '150',
-      rating:           '4.8',
-      reviews:          47,
-      rentals:          123,
-      available:        true,
-      seats:            5,
-      transmission:     'Automatic',
-      fuel:             'Gasoline',
-      year:             '2022',
-      description:      'A reliable and fuel-efficient sedan perfect for city driving or out-of-town trips.',
-      inclusions:       ['Full tank on pickup', 'Comprehensive insurance', 'Free roadside assistance', '24/7 support'],
-      businessName:     'AutoLux Rentals',
-      businessRating:   '4.8',
-      businessLocation: 'Naga City',
-      With_Driver:      2,
-      Owner_Account_ID: '1',
-    }
-  }
 }
 
 // Price calculation
 const totalPrice = computed(() => {
   const base = parseInt(vehicle.value.price)
-  const fee  = parseInt(vehicle.value.serviceFee)
-  return selectedDriver.value === 'with' ? base + fee : base
+  const fee = parseInt(vehicle.value.serviceFee)
+  if (selectedDriver.value === 'with') {
+    return base + fee
+  }
+  return base
 })
 
-// Navigation
+const vehicle = ref({
+  id: 1,
+  name: 'Toyota Vios 2022',
+  emoji: '🚗',
+  type: 'Sedan',
+  price: '850',
+  serviceFee: '150', // ← service fee for with driver
+  rating: '4.8',
+  reviews: 47,
+  rentals: 123,
+  available: true,
+  seats: 5,
+  transmission: 'Automatic',
+  fuel: 'Gasoline',
+  year: '2022',
+  description: 'A reliable and fuel-efficient sedan perfect for city driving or out-of-town trips. Well-maintained with regular servicing. Clean interior with AC, Bluetooth audio, and reverse camera.',
+  inclusions: [
+    'Unlimited mileage (Makati area)',
+    'Full tank on pickup',
+    'Comprehensive insurance',
+    'Free roadside assistance',
+    '24/7 support',
+  ],
+  businessName: 'AutoLux Rentals',
+  businessRating: '4.8',
+  businessLocation: 'Makati City',
+})
+
 const goToBusiness = () => {
-  router.push(`/business/${vehicle.value.Owner_Account_ID}`)
+  router.push('/business/1')
 }
 
 const goToBooking = () => {
@@ -360,32 +297,20 @@ const goToBooking = () => {
   router.push({
     path: '/booking',
     query: {
-      vehicleId:   vehicle.value.id,
+      vehicleId: vehicle.value.id,
       vehicleName: vehicle.value.name,
-      ownerName:   vehicle.value.businessName,
-      dailyRate:   totalPrice.value,
-      withDriver:  selectedDriver.value === 'with' ? '1' : '0',
+      vehicleType: vehicle.value.type,
+      dailyRate: vehicle.value.price,
+      serviceFee: vehicle.value.serviceFee,
+      withDriver: selectedDriver.value
     }
   })
 }
 
 const goToNegotiate = () => {
   if (!selectedDriver.value) return
-  router.push({
-    path: `/negotiate/${vehicle.value.id}`,
-    query: {
-      vehicleId:   vehicle.value.id,
-      vehicleName: vehicle.value.name,
-      ownerName:   vehicle.value.businessName,
-      dailyRate:   vehicle.value.price,   // listed price for negotiation
-      withDriver:  selectedDriver.value === 'with' ? '1' : '0',
-    }
-  })
+  router.push(`/negotiate?vehicleId=${vehicle.value.id}&driver=${selectedDriver.value}`)
 }
-
-onIonViewWillEnter(loadVehicle)
-onMounted(loadVehicle)
-
 </script>
 
 <style scoped>

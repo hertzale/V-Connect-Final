@@ -74,17 +74,7 @@
                 <span>{{ tx.location }}</span>
               </div>
             </div>
-<!-- Payment Info — shown when booking is confirmed -->
-            <div class="payment-info" v-if="tx.status === 'active'">
-              <ion-icon name="cash-outline" class="payment-icon"></ion-icon>
-              <div class="payment-text">
-                <p class="payment-title">💰 Ready to Pay</p>
-                <p class="payment-desc">
-                  Please prepare <strong>₱{{ tx.amount.toLocaleString() }}</strong> cash upon pickup.
-                </p>
-                <p class="payment-method">Payment Method: Cash</p>
-              </div>
-            </div>
+
             <div class="tx-footer-row">
               <div class="tx-amount">₱{{ tx.amount.toLocaleString() }}</div>
               <div class="tx-actions">
@@ -133,16 +123,6 @@ import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonButton, IonIcon, IonRefresher, IonRefresherContent
 } from '@ionic/vue'
-import { addIcons } from 'ionicons'
-import { cashOutline, calendarOutline, timeOutline, locationOutline, starOutline } from 'ionicons/icons'
-
-addIcons({
-  'cash-outline': cashOutline,
-  'calendar-outline': calendarOutline,
-  'time-outline': timeOutline,
-  'location-outline': locationOutline,
-  'star-outline': starOutline,
-})
 
 const router = useRouter()
 const activeTab = ref('pending')
@@ -412,41 +392,5 @@ function doRefresh(event: any) {
   --border-radius: 10px;
   font-weight: 700;
   height: 34px;
-}
-/* Payment Info */
-.payment-info {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  background: #eaf3de;
-  border: 1px solid #b7d98a;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 10px;
-}
-.payment-icon {
-  font-size: 22px;
-  color: #3b6d11;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-.payment-text { flex: 1; }
-.payment-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: #3b6d11;
-  margin: 0 0 4px;
-}
-.payment-desc {
-  font-size: 12px;
-  color: #555;
-  margin: 0 0 3px;
-  line-height: 1.4;
-}
-.payment-desc strong { color: #3b6d11; }
-.payment-method {
-  font-size: 11px;
-  color: #888;
-  margin: 0;
 }
 </style>
