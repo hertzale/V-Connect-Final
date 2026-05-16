@@ -140,50 +140,8 @@ interface Notification {
 
 const isLoading = ref(false)
 
-const notifications = ref<Notification[]>([
-  {
-    id: 1, type: 'offer', is_read: false,
-    title: 'New Offer Received',
-    message: 'Maria Santos offered ₱750/day for Toyota Vios 2022',
-    time: '2 minutes ago',
-    reference_id: 1, reference_type: 'negotiation'
-  },
-  {
-    id: 2, type: 'approved', is_read: false,
-    title: 'Booking Approved!',
-    message: 'AutoLux Rentals approved your booking for Honda City 2021',
-    time: '1 hour ago',
-    reference_id: 3, reference_type: 'booking'
-  },
-  {
-    id: 3, type: 'negotiation', is_read: false,
-    title: 'Counter Offer',
-    message: 'Speedy Wheels sent a counter offer of ₱380/day for Yamaha Mio',
-    time: '3 hours ago',
-    reference_id: 2, reference_type: 'negotiation'
-  },
-  {
-    id: 4, type: 'declined', is_read: true,
-    title: 'Offer Declined',
-    message: 'BizFleet Co. declined your offer for Toyota Innova',
-    time: 'Yesterday',
-    reference_id: 4, reference_type: 'negotiation'
-  },
-  {
-    id: 5, type: 'cancelled', is_read: true,
-    title: 'Booking Cancelled',
-    message: 'Your booking for Toyota Innova on May 10 was cancelled',
-    time: '3 days ago',
-    reference_id: 4, reference_type: 'booking'
-  },
-  {
-    id: 6, type: 'booking', is_read: true,
-    title: 'Booking Confirmed',
-    message: 'Your booking for Yamaha Mio 2023 is confirmed! Pickup Jun 5 at 9:00 AM',
-    time: '5 days ago',
-    reference_id: 2, reference_type: 'booking'
-  },
-])
+const notifications = ref<Notification[]>([])
+// TODO: Replace with notificationsAPI.getAll() when backend route is added
 
 const unreadNotifs = computed(() => notifications.value.filter(n => !n.is_read))
 const readNotifs   = computed(() => notifications.value.filter(n => n.is_read))

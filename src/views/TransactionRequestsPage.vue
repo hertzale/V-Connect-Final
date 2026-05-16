@@ -117,7 +117,7 @@
 
     <!-- Tab Bar -->
     <div class="tab-bar">
-      <div class="tab-item" @click="goTo('/dashboard')">
+      <div class="tab-item" @click="goTo('/owner-dashboard')">
         <ion-icon name="grid-outline"></ion-icon>
         <span>Dashboard</span>
       </div>
@@ -230,11 +230,8 @@ const formatDateTime = (dt: string) => {
 const loadTransactions = async () => {
   isLoading.value = true
   try {
-    const res = await transactionAPI.getAll()
-    // Filter to only show transactions where logged in user is the OWNER
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    const all = res.data.data ?? res.data
-    transactions.value = all.filter((tx: any) => tx.Owner_Account_ID === user.account_id)
+    const res = await transactionAPI.getAll({ role: 'owner' })
+    transactions.value = res.data.data ?? res.data
   } catch (err) {
     console.error('Failed to load requests', err)
   } finally {

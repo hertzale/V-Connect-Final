@@ -133,49 +133,80 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { useIonRouter } from '@ionic/vue'
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonButton, IonContent, IonIcon, IonFooter
 } from '@ionic/vue'
+import { businessAPI } from '@/api'
 
-const router = useRouter()
+const route = useRoute()
+const router = useIonRouter()
+const bizId = route.params.id as string
 const activeFilter = ref('All')
-const vehicleFilters = ['All', 'Cars', 'Vans', 'Motorcycles', 'Trucks']
+const vehicleFilters = ['All', 'Car', 'Van', 'Motorcycle', 'Tricycle']
 
-const business = ref({
-  id: 1,
-  name: 'AutoLux Rentals',
-  emoji: '🚗',
+const business = ref<any>({
+  name: '',
+  location: '',
+  phone: '',
+  rating: '—',
+  vehicleCount: 0,
+  totalRentals: 0,
+  responseTime: '—',
+  about: '',
+  emoji: '🏢',
   color: 'linear-gradient(135deg,#667eea,#764ba2)',
-  rating: '4.8',
-  vehicleCount: 12,
-  totalRentals: 342,
-  location: 'Makati City',
-  responseTime: '~1hr',
-  about: 'AutoLux Rentals offers premium vehicles for all your travel needs. From daily commutes to long road trips, we have the perfect ride for you.',
-  phone: '+63 912 345 6789',
 })
 
-const vehicles = ref([
-  { id: 1, name: 'Toyota Vios', type: 'Cars', emoji: '🚗', price: '850', seats: 5, transmission: 'Auto', available: true },
-  { id: 2, name: 'Honda City', type: 'Cars', emoji: '🚙', price: '900', seats: 5, transmission: 'Auto', available: true },
-  { id: 3, name: 'Mitsubishi L300', type: 'Vans', emoji: '🚐', price: '1500', seats: 12, transmission: 'Manual', available: false },
-  { id: 4, name: 'Toyota Innova', type: 'Vans', emoji: '🚌', price: '1800', seats: 8, transmission: 'Auto', available: true },
-  { id: 5, name: 'Yamaha Mio', type: 'Motorcycles', emoji: '🏍️', price: '400', seats: 2, transmission: 'Auto', available: true },
-  { id: 6, name: 'Isuzu Crosswind', type: 'Trucks', emoji: '🚛', price: '2000', seats: 8, transmission: 'Manual', available: false },
-])
+const vehicles = ref<any[]>([])
+
+onMounted(async () => {
+  try {
+    const res = await businessAPI.getOne(bizId)
+    const data = res.data.data
+
+    business.value = {
+      id: data.Business_ID,
+      name: data.Business_Name || data.Owner_Name,
+      location: data.Business_Address,
+      phone: data.Owner_Contact,
+      rating: '—',
+      vehicleCount: data.vehicles?.length || 0,
+      totalRentals: 0,
+      responseTime: '—',
+      about: data.Description || `${data.Business_Name} offers vehicle rental services.`,
+      emoji: '🏢',
+      color: 'linear-gradient(135deg,#667eea,#764ba2)',
+    }
+
+    vehicles.value = (data.vehicles || []).map((v: any) => ({
+      id: v.Vehicle_ID,
+      name: v.Vehicle_Model,
+      type: v.Vehicle_Type,
+      emoji: '🚗',
+      price: v.Daily_Rate,
+      seats: v.Seat_Capacity,
+      transmission: 'N/A',
+      available: v.Vehicle_Status === 'Available',
+    }))
+  } catch (err) {
+    console.error('Failed to load business', err)
+  }
+})
 
 const filteredVehicles = computed(() =>
   vehicles.value.filter(v => activeFilter.value === 'All' || v.type === activeFilter.value)
 )
 
-const minPrice = computed(() =>
-  Math.min(...vehicles.value.map(v => parseInt(v.price))).toLocaleString()
-)
+const minPrice = computed(() => {
+  if (!vehicles.value.length) return 0
+  return Math.min(...vehicles.value.map(v => parseInt(v.price))).toLocaleString()
+})
 
-function goToVehicle(id: number) {
+function goToVehicle(id: string) {
   router.push(`/vehicle/${id}`)
 }
 </script>

@@ -121,11 +121,15 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonButton, IonIcon, IonRefresher, IonRefresherContent
+  IonButton, IonIcon, IonRefresher, IonRefresherContent,
+  onIonViewWillEnter
 } from '@ionic/vue'
+import { transactionAPI } from '@/api'
 
 const router = useRouter()
 const activeTab = ref('pending')
+const isLoading = ref(false)
+const transactions = ref<any[]>([])
 
 const tabs = [
   { key: 'pending',   label: 'Upcoming' },
@@ -134,50 +138,39 @@ const tabs = [
   { key: 'cancelled', label: 'Cancelled' },
 ]
 
-interface Transaction {
-  id: number
-  vehicleName: string
-  emoji: string
-  bizName: string
-  status: 'pending' | 'active' | 'done' | 'cancelled'
-  startDate: string
-  endDate: string
-  days: number
-  pickupTime: string
-  location: string
-  amount: number
+const statusMap: Record<string, string> = {
+  'Pending':   'pending',
+  'Confirmed': 'pending',
+  'Ongoing':   'active',
+  'Completed': 'done',
+  'Cancelled': 'cancelled',
 }
 
-const transactions = ref<Transaction[]>([
-  {
-    id: 1, vehicleName: 'Toyota Vios 2022', emoji: '🚗',
-    bizName: 'AutoLux Rentals', status: 'pending',
-    startDate: 'Jun 10', endDate: 'Jun 13', days: 3,
-    pickupTime: '8:00 AM', location: 'Makati City',
-    amount: 2250
-  },
-  {
-    id: 2, vehicleName: 'Yamaha Mio 2023', emoji: '🏍️',
-    bizName: 'Speedy Wheels', status: 'active',
-    startDate: 'Jun 5', endDate: 'Jun 7', days: 2,
-    pickupTime: '9:00 AM', location: 'BGC, Taguig',
-    amount: 800
-  },
-  {
-    id: 3, vehicleName: 'Honda City 2021', emoji: '🚙',
-    bizName: 'CityDrive PH', status: 'done',
-    startDate: 'May 20', endDate: 'May 22', days: 2,
-    pickupTime: '10:00 AM', location: 'Manila',
-    amount: 1800
-  },
-  {
-    id: 4, vehicleName: 'Toyota Innova', emoji: '🚌',
-    bizName: 'BizFleet Co.', status: 'cancelled',
-    startDate: 'May 10', endDate: 'May 11', days: 1,
-    pickupTime: '7:00 AM', location: 'Pasig City',
-    amount: 1800
-  },
-])
+const loadTransactions = async () => {
+  isLoading.value = true
+  try {
+    const res = await transactionAPI.getAll({ role: 'customer' })
+    const raw = res.data.data ?? res.data
+    transactions.value = raw.map((tx: any) => ({
+      id: tx.Transaction_ID,
+      vehicleName: tx.Vehicle_Model,
+      emoji: '🚗',
+      bizName: tx.Owner_Name,
+      status: statusMap[tx.Rental_Status] || 'cancelled',
+      startDate: new Date(tx.Start_Date_and_Time).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }),
+      endDate: new Date(tx.End_Date_and_Time).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }),
+      days: tx.Rental_Duration,
+      pickupTime: new Date(tx.Start_Date_and_Time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      location: tx.Pickup_Location,
+      amount: Number(tx.Daily_Rate) * Number(tx.Rental_Duration),
+      transactionId: tx.Transaction_ID,
+    }))
+  } catch (err) {
+    console.error('Failed to load transactions', err)
+  } finally {
+    isLoading.value = false
+  }
+}
 
 const filteredTransactions = computed(() =>
   transactions.value.filter(t => t.status === activeTab.value)
@@ -207,25 +200,33 @@ function emptyStateFor(status: string) {
   return map[status] || { icon: '📋', title: 'Nothing here', sub: '' }
 }
 
-function openDetail(tx: Transaction) {
+function openDetail(tx: any) {
   router.push(`/transaction/${tx.id}`)
 }
 
-function cancelTransaction(tx: Transaction) {
-  tx.status = 'cancelled'
+async function cancelTransaction(tx: any) {
+  try {
+    await transactionAPI.updateStatus(tx.transactionId, 'Cancelled')
+    tx.status = 'cancelled'
+  } catch (err) {
+    console.error('Failed to cancel', err)
+  }
 }
 
-function openReview(tx: Transaction) {
-  // open review modal / page
+function openReview(tx: any) {
+  // TODO: open review modal
 }
 
-function rebookVehicle(tx: Transaction) {
+function rebookVehicle(tx: any) {
   router.push('/booking')
 }
 
-function doRefresh(event: any) {
-  setTimeout(() => event.target.complete(), 1000)
+async function doRefresh(event: any) {
+  await loadTransactions()
+  event.target.complete()
 }
+
+onIonViewWillEnter(loadTransactions)
 </script>
 
 <style scoped>

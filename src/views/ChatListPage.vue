@@ -150,47 +150,8 @@ interface Chat {
   status: 'ongoing' | 'agreed'
 }
 
-const chats = ref<Chat[]>([
-  {
-    id: 1,
-    vehicleName: 'Toyota Vios 2022',
-    emoji: '🚗',
-    bizName: 'AutoLux Rentals',
-    lastMessage: 'Thanks for your offer! Let me check if I can match that.',
-    lastMessageTime: '2:49 PM',
-    listedPrice: 850,
-    myOffer: 750,
-    agreedPrice: undefined,
-    unreadCount: 1,
-    status: 'ongoing'
-  },
-  {
-    id: 2,
-    vehicleName: 'Yamaha Mio 2023',
-    emoji: '🏍️',
-    bizName: 'Speedy Wheels',
-    lastMessage: '✅ Price agreed! Proceed to booking.',
-    lastMessageTime: '10:03 AM',
-    listedPrice: 400,
-    myOffer: 380,
-    agreedPrice: 380,
-    unreadCount: 0,
-    status: 'agreed'
-  },
-  {
-    id: 3,
-    vehicleName: 'Honda City 2021',
-    emoji: '🚙',
-    bizName: 'CityDrive PH',
-    lastMessage: 'Hi! Welcome to CityDrive PH. How can I help you?',
-    lastMessageTime: 'Yesterday',
-    listedPrice: 900,
-    myOffer: undefined,
-    agreedPrice: undefined,
-    unreadCount: 0,
-    status: 'ongoing'
-  },
-])
+const chats = ref<Chat[]>([])
+// TODO: Replace with negotiationsAPI.getActive() when backend route is added
 
 const filteredChats = computed(() =>
   chats.value.filter(c =>

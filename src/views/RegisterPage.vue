@@ -131,8 +131,6 @@ const register = async () => {
     return
   }
 
-  const role = isBusiness.value ? 'Business_Owner' : 'Customer'
-
   // Business owners must have driver's license
   if (isBusiness.value && !drivers_license.value) {
     errorMessage.value = "Driver's license is required for vehicle owners"
@@ -154,8 +152,7 @@ const register = async () => {
       contact_number: contact_number.value,
       address: address.value,
       drivers_license: drivers_license.value || null,
-      password: password.value,
-      role: role
+      password: password.value
     })
 
     router.push('/login')

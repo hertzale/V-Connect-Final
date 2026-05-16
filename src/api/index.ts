@@ -37,7 +37,8 @@ export const vehicleAPI = {
 // POST   /api/transactions         → create booking
 // PATCH  /api/transactions/:id/status → updateStatus (Confirmed/Cancelled/Ongoing/Completed)
 export const transactionAPI = {
-  getAll: () => api.get('/api/transactions'),
+  getAll: (params?: { role?: string; from?: string; to?: string; status?: string }) =>
+  api.get('/api/transactions', { params }),
 
   getOne: (id: string) => api.get(`/api/transactions/${id}`),
 

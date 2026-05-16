@@ -224,72 +224,100 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useIonRouter } from '@ionic/vue'
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonTitle, IonButton, IonContent, IonIcon, IonFooter
 } from '@ionic/vue'
+import { vehicleAPI } from '@/api'
+import axios from 'axios'
 
+const route = useRoute()
 const router = useIonRouter()
+const vehicleId = route.params.id as string
 
-// Check if user has license
+const vehicle = ref<any>({
+  name: '',
+  price: 0,
+  serviceFee: 0,
+  type: '',
+  available: false,
+  seats: 0,
+  fuel: 'N/A',
+  rating: '—',
+  reviews: 0,
+  rentals: 0,
+  description: '',
+  inclusions: [],
+  businessName: '',
+  businessRating: '—',
+  businessLocation: '',
+  businessId: '',
+  emoji: '🚗',
+})
+
+const selectedDriver = ref('')
+const isLoading = ref(false)
+
 const hasLicense = computed(() => {
   const savedUser = localStorage.getItem('user')
-  if (savedUser) {
-    const user = JSON.parse(savedUser)
-    return !!user.drivers_license
-  }
+  if (savedUser) return !!JSON.parse(savedUser).has_license
   return false
 })
 
-// Driver option selection
-const selectedDriver = ref('')
+const totalPrice = computed(() => {
+  const base = Number(vehicle.value.price) || 0
+  const fee = Number(vehicle.value.serviceFee) || 0
+  return selectedDriver.value === 'with' ? base + fee : base
+})
 
 const selectDriver = (option: string) => {
   selectedDriver.value = option
 }
 
-// Price calculation
-const totalPrice = computed(() => {
-  const base = parseInt(vehicle.value.price)
-  const fee = parseInt(vehicle.value.serviceFee)
-  if (selectedDriver.value === 'with') {
-    return base + fee
-  }
-  return base
-})
+onMounted(async () => {
+  isLoading.value = true
+  try {
+    const [vRes, fRes] = await Promise.all([
+      vehicleAPI.getOne(vehicleId),
+      axios.get(`http://localhost:3000/api/feedback/vehicle/${vehicleId}`)
+    ])
+    const v = vRes.data.data
+    const feedbackData = fRes.data
 
-const vehicle = ref({
-  id: 1,
-  name: 'Toyota Vios 2022',
-  emoji: '🚗',
-  type: 'Sedan',
-  price: '850',
-  serviceFee: '150', // ← service fee for with driver
-  rating: '4.8',
-  reviews: 47,
-  rentals: 123,
-  available: true,
-  seats: 5,
-  transmission: 'Automatic',
-  fuel: 'Gasoline',
-  year: '2022',
-  description: 'A reliable and fuel-efficient sedan perfect for city driving or out-of-town trips. Well-maintained with regular servicing. Clean interior with AC, Bluetooth audio, and reverse camera.',
-  inclusions: [
-    'Unlimited mileage (Makati area)',
-    'Full tank on pickup',
-    'Comprehensive insurance',
-    'Free roadside assistance',
-    '24/7 support',
-  ],
-  businessName: 'AutoLux Rentals',
-  businessRating: '4.8',
-  businessLocation: 'Makati City',
+    vehicle.value = {
+      id: v.Vehicle_ID,
+      name: v.Vehicle_Model,
+      price: v.Daily_Rate,
+      serviceFee: Math.round(v.Daily_Rate * 0.10),
+      type: v.Vehicle_Type,
+      available: v.Vehicle_Status === 'Available',
+      seats: v.Seat_Capacity,
+      fuel: v.Fuel_Type || 'N/A',
+      year: v.Registration_Date?.split('-')[0] || '—',
+      transmission: 'N/A',
+      rating: feedbackData.average_score || '—',
+      reviews: feedbackData.data?.length || 0,
+      rentals: 0,
+      description: `${v.Vehicle_Model} - ${v.Vehicle_Type}. ${v.Seat_Capacity} seats.`,
+      inclusions: ['Vehicle as listed', v.Fuel_Type ? `${v.Fuel_Type} fuel type` : ''].filter(Boolean),
+      businessName: v.Owner_Name,
+      businessRating: '—',
+      businessLocation: v.Owner_Contact || '',
+      businessId: v.Owner_Account_ID,
+      emoji: '🚗',
+    }
+  } catch (err) {
+    console.error('Failed to load vehicle', err)
+  } finally {
+    isLoading.value = false
+  }
 })
 
 const goToBusiness = () => {
-  router.push('/business/1')
+  router.push(`/business/${vehicle.value.businessId}`)
 }
 
 const goToBooking = () => {
@@ -299,17 +327,26 @@ const goToBooking = () => {
     query: {
       vehicleId: vehicle.value.id,
       vehicleName: vehicle.value.name,
-      vehicleType: vehicle.value.type,
+      ownerName: vehicle.value.businessName,
       dailyRate: vehicle.value.price,
       serviceFee: vehicle.value.serviceFee,
-      withDriver: selectedDriver.value
+      withDriver: selectedDriver.value === 'with' ? 1 : 0
     }
   })
 }
 
 const goToNegotiate = () => {
   if (!selectedDriver.value) return
-  router.push(`/negotiate?vehicleId=${vehicle.value.id}&driver=${selectedDriver.value}`)
+  router.push({
+    path: `/negotiate/${vehicle.value.id}`,
+    query: {
+      vehicleId: vehicle.value.id,
+      vehicleName: vehicle.value.name,
+      ownerName: vehicle.value.businessName,
+      dailyRate: vehicle.value.price,
+      withDriver: selectedDriver.value === 'with' ? 1 : 0
+    }
+  })
 }
 </script>
 
