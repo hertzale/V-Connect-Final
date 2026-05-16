@@ -25,12 +25,13 @@
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
+      
       <!-- Empty State -->
       <div class="empty-state" v-if="filteredTransactions.length === 0">
         <div class="empty-icon">{{ emptyStateFor(activeTab).icon }}</div>
         <div class="empty-title">{{ emptyStateFor(activeTab).title }}</div>
         <div class="empty-sub">{{ emptyStateFor(activeTab).sub }}</div>
-        <ion-button class="empty-btn" router-link="/businesses" v-if="activeTab !== 'done'">
+        <ion-button class="empty-btn" router-link="/home" v-if="activeTab !== 'Completed'">
           Browse Vehicles
         </ion-button>
       </div>
@@ -39,22 +40,22 @@
       <div class="tx-list" v-else>
         <div
           v-for="tx in filteredTransactions"
-          :key="tx.id"
+          :key="tx.Transaction_ID"
           class="tx-card"
           @click="openDetail(tx)"
         >
           <!-- Status Bar -->
-          <div class="tx-status-bar" :class="tx.status"></div>
+          <div class="tx-status-bar" :class="tx.Rental_Status"></div>
 
           <div class="tx-card-inner">
             <div class="tx-header">
-              <div class="tx-vehicle-emoji">{{ tx.emoji }}</div>
+              <div class="tx-vehicle-emoji">🚗</div>
               <div class="tx-info">
-                <div class="tx-vehicle-name">{{ tx.vehicleName }}</div>
-                <div class="tx-biz-name">{{ tx.bizName }}</div>
+                <div class="tx-vehicle-name">{{ tx.Vehicle_Model }}</div>
+                <div class="tx-biz-name">{{ tx.Business_Name }}</div>
               </div>
-              <div class="tx-status-badge" :class="tx.status">
-                {{ statusLabel(tx.status) }}
+              <div class="tx-status-badge" :class="tx.Rental_Status">
+                {{ statusLabel(tx.Rental_Status) }}
               </div>
             </div>
 
@@ -63,23 +64,23 @@
             <div class="tx-details">
               <div class="tx-detail-row">
                 <ion-icon name="calendar-outline" class="td-icon"></ion-icon>
-                <span>{{ tx.startDate }} → {{ tx.endDate }}</span>
+                <span>{{ tx.Start_Date }} → {{ tx.End_Date }}</span>
               </div>
               <div class="tx-detail-row">
                 <ion-icon name="time-outline" class="td-icon"></ion-icon>
-                <span>{{ tx.days }} day(s) · Pickup {{ tx.pickupTime }}</span>
+                <span>{{ tx.Rental_Duration }} day(s) · Pickup {{ tx.Start_Time }}</span>
               </div>
               <div class="tx-detail-row">
                 <ion-icon name="location-outline" class="td-icon"></ion-icon>
-                <span>{{ tx.location }}</span>
+                <span>{{ tx.Pickup_Location }}</span>
               </div>
             </div>
 
             <div class="tx-footer-row">
-              <div class="tx-amount">₱{{ tx.amount.toLocaleString() }}</div>
+              <div class="tx-amount">₱{{ tx.Total_Amount.toLocaleString() }}</div>
               <div class="tx-actions">
                 <ion-button
-                  v-if="tx.status === 'pending'"
+                  v-if="tx.Rental_Status === 'Pending'"
                   fill="outline"
                   size="small"
                   class="btn-cancel-tx"
@@ -88,7 +89,7 @@
                   Cancel
                 </ion-button>
                 <ion-button
-                  v-if="tx.status === 'done'"
+                  v-if="tx.Rental_Status === 'Completed'"
                   fill="outline"
                   size="small"
                   class="btn-review"
@@ -98,7 +99,7 @@
                   Review
                 </ion-button>
                 <ion-button
-                  v-if="tx.status === 'done'"
+                  v-if="tx.Rental_Status === 'Completed'"
                   size="small"
                   class="btn-rebook"
                   @click.stop="rebookVehicle(tx)"
@@ -117,13 +118,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import {
+import { ref, computed, onMounted } from 'vue'
+import { useIonRouter, onIonViewWillEnter,
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonButton, IonIcon, IonRefresher, IonRefresherContent,
   onIonViewWillEnter
 } from '@ionic/vue'
+import { transactionAPI } from '@/api'
 import { transactionAPI } from '@/api'
 
 const router = useRouter()
@@ -173,34 +174,38 @@ const loadTransactions = async () => {
 }
 
 const filteredTransactions = computed(() =>
-  transactions.value.filter(t => t.status === activeTab.value)
+  transactions.value.filter(t => t.Rental_Status === activeTab.value)
 )
 
 function countFor(status: string) {
-  return transactions.value.filter(t => t.status === status).length
+  return transactions.value.filter(t => t.Rental_Status === status).length
 }
 
 function statusLabel(status: string) {
   const map: Record<string, string> = {
-    pending: '🕐 Upcoming',
-    active: '✅ Active',
-    done: '✔ Done',
-    cancelled: '❌ Cancelled',
+    Pending:   '🕐 Upcoming',
+    Reserved:  '📋 Reserved',
+    Ongoing:   '✅ Active',
+    Completed: '✔ Done',
+    Cancelled: '❌ Cancelled',
+    Overdue:   '⚠️ Overdue',
   }
   return map[status] || status
 }
 
 function emptyStateFor(status: string) {
   const map: Record<string, { icon: string; title: string; sub: string }> = {
-    pending:   { icon: '🕐', title: 'No upcoming bookings', sub: 'Browse vehicles to make a reservation.' },
-    active:    { icon: '🚗', title: 'No active rentals', sub: 'Your active rentals will appear here.' },
-    done:      { icon: '✅', title: 'No completed rentals yet', sub: 'Your rental history will appear here.' },
-    cancelled: { icon: '❌', title: 'No cancelled bookings', sub: 'Cancelled transactions will show here.' },
+    Pending:   { icon: '🕐', title: 'No upcoming bookings',     sub: 'Browse vehicles to make a reservation.' },
+    Reserved:  { icon: '📋', title: 'No reserved bookings',     sub: 'Confirmed bookings will appear here.' },
+    Ongoing:   { icon: '🚗', title: 'No active rentals',        sub: 'Your active rentals will appear here.' },
+    Completed: { icon: '✅', title: 'No completed rentals yet',  sub: 'Your rental history will appear here.' },
+    Cancelled: { icon: '❌', title: 'No cancelled bookings',     sub: 'Cancelled transactions will show here.' },
+    Overdue:   { icon: '⚠️', title: 'No overdue rentals',       sub: 'Overdue rentals will appear here.' },
   }
   return map[status] || { icon: '📋', title: 'Nothing here', sub: '' }
 }
 
-function openDetail(tx: any) {
+function openDetail(tx: Transaction) {
   router.push(`/transaction/${tx.id}`)
 }
 
@@ -311,10 +316,13 @@ onIonViewWillEnter(loadTransactions)
   width: 5px;
   flex-shrink: 0;
 }
-.tx-status-bar.pending   { background: #fbbf24; }
-.tx-status-bar.active    { background: #00c896; }
-.tx-status-bar.done      { background: #6b7280; }
-.tx-status-bar.cancelled { background: #e05555; }
+.tx-status-bar.Pending   { background: #fbbf24; }
+.tx-status-bar.Reserved  { background: #fc89d0; }
+.tx-status-bar.Ongoing   { background: #00c896; }
+.tx-status-bar.Completed { background: #6b7280; }
+.tx-status-bar.Cancelled { background: #e05555; }
+.tx-status-bar.Overdue   { background: #ff6b35; }
+
 
 .tx-card-inner {
   flex: 1;
@@ -348,10 +356,12 @@ onIonViewWillEnter(loadTransactions)
   font-weight: 700;
   white-space: nowrap;
 }
-.tx-status-badge.pending   { background: #fef3c7; color: #d97706; }
-.tx-status-badge.active    { background: #e8fdf6; color: #00a87e; }
-.tx-status-badge.done      { background: #f3f4f6; color: #6b7280; }
-.tx-status-badge.cancelled { background: #fde8e8; color: #e05555; }
+.tx-status-badge.Pending   { background: #fef3c7; color: #d97706; }
+.tx-status-badge.Reserved  { background: #ffedf6; color: #b70b67; }
+.tx-status-badge.Ongoing   { background: #e8fdf6; color: #00a87e; }
+.tx-status-badge.Completed { background: #f3f4f6; color: #6b7280; }
+.tx-status-badge.Cancelled { background: #fde8e8; color: #e05555; }
+.tx-status-badge.Overdue   { background: #fff0eb; color: #ff6b35; }
 
 .tx-divider { height: 1px; background: #f0f0f5; margin-bottom: 12px; }
 

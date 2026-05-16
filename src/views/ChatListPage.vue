@@ -43,36 +43,36 @@
         <div class="chat-list" v-else>
           <div
             v-for="chat in filteredChats"
-            :key="chat.id"
+            :key="chat.Inquiry_ID"
             class="chat-card"
             @click="openChat(chat)"
           >
             <!-- Vehicle Image Placeholder -->
-            <div class="chat-vehicle-icon">{{ chat.emoji }}</div>
+            <div class="chat-vehicle-icon">🚗</div>
 
             <div class="chat-info">
               <div class="chat-top-row">
-                <div class="chat-vehicle-name">{{ chat.vehicleName }}</div>
-                <div class="chat-time">{{ chat.lastMessageTime }}</div>
+                <div class="chat-vehicle-name">{{ chat.Vehicle_Model }}</div>
+                <div class="chat-time">{{ chat.Created_At }}</div>
               </div>
-              <div class="chat-biz-name">{{ chat.bizName }}</div>
-              <div class="chat-last-msg">{{ chat.lastMessage }}</div>
+              <div class="chat-biz-name">{{ chat.Business_Name }}</div>
+              <div class="chat-last-msg">{{ chat.Message ?? 'No message yet' }}</div>
 
               <div class="chat-bottom-row">
                 <!-- Price status -->
-                <div class="price-status" v-if="chat.agreedPrice">
-                  <span class="price-agreed">✅ ₱{{ chat.agreedPrice }}/day agreed</span>
+                <div class="price-status" v-if="chat.Inquiry_Status === 'Accepted'">
+                  <span class="price-agreed">✅ ₱{{ chat.Agreed_Price }}/day agreed</span>
                 </div>
-                <div class="price-status" v-else-if="chat.myOffer">
-                  <span class="price-pending">💬 Your offer: ₱{{ chat.myOffer }}/day</span>
+                <div class="price-status" v-else-if="chat.Inquiry_Status === 'Pending'">
+                  <span class="price-pending">💬 Your offer: ₱{{ chat.Offered_Price }}/day</span>
                 </div>
                 <div class="price-status" v-else>
-                  <span class="price-listed">Listed: ₱{{ chat.listedPrice }}/day</span>
+                  <span class="price-listed">₱{{ chat.Offered_Price }}/day</span>
                 </div>
 
                 <!-- Unread badge -->
-                <div class="unread-badge" v-if="chat.unreadCount > 0">
-                  {{ chat.unreadCount }}
+                <div class="unread-badge" v-if="chat.Inquiry_Status === 'Pending'">
+                  New
                 </div>
               </div>
             </div>
@@ -85,10 +85,35 @@
 
     <!-- TAB BAR -->
     <div class="tab-bar">
-      <div class="tab-item" @click="goTo('/home')">
-        <ion-icon name="grid-outline"></ion-icon>
-        <span>Home</span>
+            <!--Customer Tabs-->
+      <template v-if="userRole === 'Customer'">
+        <div class="tab-item" @click="goTo('/home')">
+          <ion-icon name="grid-outline"></ion-icon>
+          <span>Home</span>
+        </div>
+        <div class="tab-item active" @click="goTo('/chat')">
+        <div class="notif-tab-wrap">
+          <ion-icon name="chatbubble-outline"></ion-icon>
+          <div class="tab-badge" v-if="totalUnread > 0">{{ totalUnread }}</div>
+        </div>
+        <span>Chat</span>
       </div>
+        <div class="tab-item" @click="goTo('/transactions')">
+          <ion-icon name="list-outline"></ion-icon>
+          <span>Transactions</span>
+        </div>
+        <div class="tab-item" @click="goTo('/notifications')">
+          <ion-icon name="notifications-outline"></ion-icon>
+          <span>Alerts</span>
+        </div>
+      </template>
+
+      <template v-else>
+        <!-- Business Owner Tabs -->
+        <div class="tab-item" @click="goTo('/owner-dashboard')">
+          <ion-icon name="grid-outline"></ion-icon>
+          <span>Dashboard</span>
+        </div>
       <div class="tab-item active" @click="goTo('/chat')">
         <div class="notif-tab-wrap">
           <ion-icon name="chatbubble-outline"></ion-icon>
@@ -96,32 +121,36 @@
         </div>
         <span>Chat</span>
       </div>
-      <div class="tab-item" @click="goTo('/post')">
-        <div class="plus-btn">
-          <ion-icon name="add-outline"></ion-icon>
+        <div class="tab-item" @click="goTo('/post')">
+      <div class="plus-btn">
+        <ion-icon name="add-outline"></ion-icon>
+      </div>
+      <span>Post</span>
+      </div>
+
+        <div class="tab-item" @click="goTo('/listings')">
+          <ion-icon name="list-outline"></ion-icon>
+          <span>Listing</span>
         </div>
-        <span>Post</span>
-      </div>
-      <div class="tab-item" @click="goTo('/listings')">
-        <ion-icon name="list-outline"></ion-icon>
-        <span>Listing</span>
-      </div>
-      <div class="tab-item" @click="goTo('/notifications')">
-        <ion-icon name="notifications-outline"></ion-icon>
-        <span>Alerts</span>
-      </div>
+
+        <div class="tab-item" @click="goTo('/notifications')">
+          <ion-icon name="notifications-outline"></ion-icon>
+          <span>Alerts</span>
+        </div>
+      </template>
     </div>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { IonPage, IonContent, IonIcon, useIonRouter, onIonViewWillEnter } from '@ionic/vue'
 import { addIcons } from 'ionicons'
 import {
   gridOutline, chatbubbleOutline, addOutline,
   listOutline, notificationsOutline, searchOutline
 } from 'ionicons/icons'
+import { inquiryAPI } from '@/api'
 
 addIcons({
   'grid-outline': gridOutline,
@@ -155,24 +184,70 @@ const chats = ref<Chat[]>([])
 
 const filteredChats = computed(() =>
   chats.value.filter(c =>
-    c.vehicleName.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    c.bizName.toLowerCase().includes(searchQuery.value.toLowerCase())
+    c.Vehicle_Model?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+    c.Business_Name?.toLowerCase().includes(searchQuery.value.toLowerCase())
   )
 )
 
+// unread = inquiries with Inquiry_Status === 'Pending'
 const totalUnread = computed(() =>
-  chats.value.reduce((sum, c) => sum + c.unreadCount, 0)
+  chats.value.filter(c => c.Inquiry_Status === 'Pending').length
 )
 
-function openChat(chat: Chat) {
-  router.push(`/negotiate/${chat.id}`)
+async function loadChats() {
+  isLoading.value = true
+  try {
+    const res = await inquiryAPI.getAll()
+    chats.value = res.data.data ?? res.data
+  } catch (err) {
+    console.error('Failed to load negotiations', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+function loadUserRole() {
+  const savedUser = localStorage.getItem('user')
+
+  if (savedUser) {
+    const user = JSON.parse(savedUser)
+
+    // adjust this depending on your backend field
+    userRole.value =
+      user.Role ||
+      user.Account_Role ||
+      user.User_Role ||
+      ''
+  }
+}
+
+function openChat(chat: any) {
+  router.push({ 
+    path: `/negotiate/${chat.Inquiry_ID}`,
+    query: { 
+      vehicle: chat.Vehicle_Model, 
+      dailyRate: String(chat.Offered_Price),
+      ownerName: chat.Business_Name,
+      vehicleName: chat.Vehicle_Model,
+      withDriver: chat.With_Driver,
+      customerAccountId: chat.Customer_Account_ID,
+      ownerAccountId: chat.Business_Account_ID,
+    } 
+  })
 }
 
 const goTo = (path: string) => router.push(path)
 
 onIonViewWillEnter(() => {
-  // replace with: negotiationsAPI.getActive() later
+  loadUserRole()
+  loadChats()
 })
+
+onMounted(() => {
+  loadUserRole()
+  loadChats()
+})
+
 </script>
 
 <style scoped>

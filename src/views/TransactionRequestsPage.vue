@@ -252,7 +252,7 @@ const updateStatus = async (tx: any, status: 'Confirmed' | 'Ongoing' | 'Complete
   }
 }
 
-const goBack = () => router.push('/dashboard')
+const goBack = () => router.push('/owner-dashboard')
 const goTo = (path: string) => router.push(path)
 
 onIonViewWillEnter(loadTransactions)

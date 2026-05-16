@@ -14,8 +14,18 @@ api.interceptors.request.use((config) => {
 
 // ── Auth ──────────────────────────────────────────────────
 export const authAPI = {
-  login:    (data: any) => api.post('/api/auth/login', data),
-  register: (data: any) => api.post('/api/auth/register', data)
+  login:    (data: { email: string; password: string }) =>
+    api.post('/api/auth/login', data),
+
+  register: (data: {
+    person_name: string
+    address: string
+    email: string
+    contact_number: string
+    drivers_license?: string
+    password: string
+    role: string
+  }) => api.post('/api/auth/register', data)
 }
 
 // ── Vehicles ──────────────────────────────────────────────
@@ -37,28 +47,32 @@ export const vehicleAPI = {
   update:       (id: string, data: any) => api.put(`/api/vehicles/${id}`, data),
   updateStatus: (id: string, status: string) =>
     api.patch(`/api/vehicles/${id}/status`, { status }),
-  delete: (id: string) => api.delete(`/api/vehicles/${id}`)
+
+  delete: (id: string) =>
+    api.delete(`/api/vehicles/${id}`)
 }
 
 // ── Transactions ──────────────────────────────────────────
-// Based on confirmed routes in transactions.js:
-// GET    /api/transactions         → getAll (both customer + owner)
-// GET    /api/transactions/:id     → getOne
-// POST   /api/transactions         → create booking
-// PATCH  /api/transactions/:id/status → updateStatus (Confirmed/Cancelled/Ongoing/Completed)
 export const transactionAPI = {
   getAll: (params?: { role?: string; from?: string; to?: string; status?: string }) =>
   api.get('/api/transactions', { params }),
 
-  getOne: (id: string) => api.get(`/api/transactions/${id}`),
+  getOne: (id: string) =>
+    api.get(`/api/transactions/${id}`),
 
   create: (data: {
     vehicle_id: string
-    start_date_and_time: string   // format: "2025-06-10 08:00:00"
-    end_date_and_time: string     // format: "2025-06-13 08:00:00"
+    start_date: string          // format: "YYYY-MM-DD"
+    end_date: string            // format: "YYYY-MM-DD"
+    start_time: string          // format: "HH:MM:SS"
+    end_time: string            // format: "HH:MM:SS"
     pickup_location: string
     drop_off_location: string
-    with_driver: number           // 0 = self-drive, 1 = with driver
+    with_driver: 0 | 1          // 0 = self-drive, 1 = with driver
+    gas_included?: 0 | 1
+    other_details?: string
+    driver_name?: string        // required if with_driver = 1
+    drivers_license?: string    // required if with_driver = 1
   }) => api.post('/api/transactions', data),
 
   // ⚠️ correct endpoint is PATCH /:id/status NOT /:id/respond
@@ -69,28 +83,23 @@ export const transactionAPI = {
 }
 
 // ── Persons / Profile ─────────────────────────────────────
-// Based on confirmed routes in persons.js:
-// GET /api/persons/me      → get own profile
-// PUT /api/persons/me      → update own profile
-// GET /api/persons/:id     → get other user's basic info
 export const personAPI = {
-  getMe: () => api.get('/api/persons/me'),
+  getMe: () =>
+    api.get('/api/persons/me'),
 
   updateMe: (data: {
-    name: string
+    person_name: string         // fixed: was 'name', DB column is Person_Name
     address: string
     contact_number: string
     drivers_license?: string | null
     email?: string | null
   }) => api.put('/api/persons/me', data),
 
-  getOne: (id: string) => api.get(`/api/persons/${id}`)
+  getOne: (id: string) =>
+    api.get(`/api/persons/${id}`)
 }
 
 // ── Business ──────────────────────────────────────────────
-// ⚠️ No businesses.js route file found in backend yet
-// Using mock fallback so app doesn't crash
-// Remove mock and uncomment real calls once backend adds the route
 export const businessAPI = {
   getAll: (params?: { lat?: number; lng?: number; radius_km?: number; type?: string }) =>
     api.get('/api/businesses', { params }),

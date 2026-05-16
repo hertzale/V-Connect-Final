@@ -39,11 +39,11 @@
   </ion-page>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import { useIonRouter } from '@ionic/vue'
 import { IonPage, IonContent } from '@ionic/vue'
-import axios from 'axios'
+import { authAPI } from '@/api'
 
 const router = useIonRouter()
 
@@ -64,7 +64,7 @@ const login = async () => {
   errorMessage.value = ''
 
   try {
-    const res = await axios.post('http://localhost:3000/api/auth/login', {
+    const res = await authAPI.login({
       email: email.value,
       password: password.value
     })
@@ -80,7 +80,7 @@ const login = async () => {
       router.push('/home')
     }
 
-  } catch (err) {
+  } catch (err: any) {
     errorMessage.value = err.response?.data?.message || 'Login failed.'
   } finally {
     isLoading.value = false

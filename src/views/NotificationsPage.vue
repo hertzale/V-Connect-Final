@@ -87,16 +87,6 @@
         <ion-icon name="chatbubble-outline"></ion-icon>
         <span>Chat</span>
       </div>
-      <div class="tab-item" @click="goTo('/post')">
-        <div class="plus-btn">
-          <ion-icon name="add-outline"></ion-icon>
-        </div>
-        <span>Post</span>
-      </div>
-      <div class="tab-item" @click="goTo('/listings')">
-        <ion-icon name="list-outline"></ion-icon>
-        <span>Listing</span>
-      </div>
       <div class="tab-item active" @click="goTo('/notifications')">
         <div class="notif-tab-wrap">
           <ion-icon name="notifications-outline"></ion-icon>
