@@ -1,4 +1,5 @@
 import { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
+import axios from 'axios'
 
 // Check if logged in
 export const requireAuth = (
