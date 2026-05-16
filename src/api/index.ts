@@ -18,7 +18,7 @@ export const authAPI = {
     api.post('/api/auth/login', data),
 
   register: (data: {
-    person_name: string
+    name: string
     address: string
     email: string
     contact_number: string
@@ -34,18 +34,30 @@ export const vehicleAPI = {
   getMy:        ()              => api.get('/api/vehicles/my'),
   getOne:       (id: string)    => api.get(`/api/vehicles/${id}`),
   post: (data: {
-    vehicle_type: string
-    vehicle_model: string
-    vehicle_color: string
-    seat_capacity: number
-    daily_rate: number
-    plate_number: string
-    registration_date: string
-    fuel_type?: string | null
-    with_driver?: 0 | 1 | 2
+    vehicle_model:     string
+    vehicle_type:      string
+    vehicle_color:     string
+    seat_capacity:     number
+    plate_number:      string
+    registration_date: string    // format: "YYYY-MM-DD"
+    fuel_type?:        string    // ✅ optional
+    daily_rate:        number
   }) => api.post('/api/vehicles', data),
-  update:       (id: string, data: any) => api.put(`/api/vehicles/${id}`, data),
-  updateStatus: (id: string, status: string) =>
+
+  update: (id: string, data: {
+    vehicle_model?:     string
+    vehicle_type?:      string
+    vehicle_color?:     string
+    seat_capacity?:     number
+    plate_number?:      string
+    registration_date?: string
+    fuel_type?:         string
+    daily_rate?:        number
+    // ❌ removed photos — now handled by vehiclePhotoAPI
+  }) => api.put(`/api/vehicles/${id}`, data),
+
+  updateStatus: (id: string, status: 'Available' | 'Rented' | 'Under Maintenance') =>
+>>>>>>> bd2fdfa (added owner negotiate page)
     api.patch(`/api/vehicles/${id}/status`, { status }),
 
   delete: (id: string) =>
@@ -78,7 +90,11 @@ export const transactionAPI = {
   // ⚠️ correct endpoint is PATCH /:id/status NOT /:id/respond
   updateStatus: (
     id: string,
+<<<<<<< HEAD
     status: 'Confirmed' | 'Cancelled' | 'Ongoing' | 'Completed'
+=======
+    status: 'Pending' | 'Reserved' | 'Cancelled' | 'Ongoing' | 'Completed' | 'Overdue'
+>>>>>>> bd2fdfa (added owner negotiate page)
   ) => api.patch(`/api/transactions/${id}/status`, { status }),
 }
 
@@ -190,4 +206,116 @@ export const inquiryAPI = {
   cancel: (id: string) =>
     api.patch(`/api/inquiries/${id}/cancel`),
 }
+<<<<<<< HEAD
+=======
+// ── Vehicle Photos ───────────────────────────────────────
+export const vehiclePhotoAPI = {
+  // Get all photos for a vehicle
+  getByVehicle: (vehicleId: string) =>
+    api.get(`/api/vehicles/${vehicleId}/photos`),
+
+  // Upload a new photo
+  upload: (data: {
+    vehicle_id: string
+    photo_url:  string
+    is_primary?: number    // 1 = primary, 0 = not primary
+  }) => api.post('/api/vehicle-photos', data),
+
+  // Set a photo as primary
+  setPrimary: (photoId: string) =>
+    api.patch(`/api/vehicle-photos/${photoId}/primary`),
+
+  // Delete a photo
+  delete: (photoId: string) =>
+    api.delete(`/api/vehicle-photos/${photoId}`),
+}
+
+// ── Notifications ─────────────────────────────────────────
+// Previously missing — NOTIFICATION table exists in DB
+export const notificationAPI = {
+  getAll: () =>
+    api.get('/api/notifications'),
+
+  markRead: (id: string) =>
+    api.patch(`/api/notifications/${id}/read`),
+
+  markAllRead: () =>
+    api.patch('/api/notifications/read-all'),
+
+  create: (data: {
+    notification_type: string
+    message: string
+    reference_id: string
+    reference_type: string
+    is_read: boolean
+  }) => api.post('/api/notifications', data),
+}
+
+// ── Feedback ──────────────────────────────────────────────
+export const feedbackAPI = {
+  // Get all feedback for a vehicle
+  getByVehicle: (vehicleId: string) =>
+    api.get(`/api/feedback/vehicle/${vehicleId}`),
+
+  // Get all feedback for a transaction
+  getByTransaction: (transactionId: string) =>
+    api.get(`/api/feedback/transaction/${transactionId}`),
+
+  // Create feedback — only allowed if transaction is Completed
+  create: (data: {
+    vehicle_id:      string     // FEEDBACK.Vehicle_ID
+    transaction_id:  string     // FEEDBACK.Transaction_ID
+    score:           number     // FEEDBACK.Score (e.g. 1–5)
+    comments?:       string     // FEEDBACK.Comments (VARCHAR 150)
+  }) => api.post('/api/feedback', data),
+}
+
+// ── Payment ───────────────────────────────────────────────
+export const paymentAPI = {
+  getAll: () =>
+    api.get('/api/payments'),
+
+  getOne: (id: string) =>
+    api.get(`/api/payments/${id}`),
+
+  getByTransaction: (transactionId: string) =>
+    api.get(`/api/payments/transaction/${transactionId}`),
+
+  create: (data: {
+    transaction_id:  string     // PAYMENT.Transaction_ID
+    total_amount:    number     // PAYMENT.Total_Amount (NOT NULL)
+    payment_method:  'Cash'     // PAYMENT.Payment_Method — only Cash allowed
+    payment_date:    string     // PAYMENT.Payment_Date format: "YYYY-MM-DD"
+    payment_status:  'Paid' | 'Pending' | 'Refunded'  // PAYMENT.Payment_Status
+  }) => api.post('/api/payments', data),
+
+  updateStatus: (id: string, status: 'Paid' | 'Pending' | 'Refunded') =>
+    api.patch(`/api/payments/${id}/status`, { status }),
+}
+
+// ── Receipt ───────────────────────────────────────────────
+export const receiptAPI = {
+  getAll: () =>
+    api.get('/api/receipts'),
+
+  getOne: (id: string) =>
+    api.get(`/api/receipts/${id}`),
+
+  getByPayment: (paymentId: string) =>
+    api.get(`/api/receipts/payment/${paymentId}`),
+
+  getByTransaction: (transactionId: string) =>
+    api.get(`/api/receipts/transaction/${transactionId}`),
+
+  create: (data: {
+    payment_id:    string       // RECEIPT.Payment_ID (NOT NULL)
+    amount_paid:   number       // RECEIPT.Amount_Paid (NOT NULL)
+    receipt_date:  string       // RECEIPT.Receipt_Date format: "YYYY-MM-DD"
+    payment_type?: string       // RECEIPT.Payment_Type DEFAULT 'Full'
+    remarks?:      string       // RECEIPT.Remarks (VARCHAR 200)
+    // recorded_by handled by backend from auth token
+  }) => api.post('/api/receipts', data),
+}
+
+>>>>>>> bd2fdfa (added owner negotiate page)
 export default api

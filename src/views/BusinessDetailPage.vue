@@ -214,8 +214,29 @@ const minPrice = computed(() => {
   return Math.min(...vehicles.value.map(v => parseInt(v.price))).toLocaleString()
 })
 
-function goToVehicle(id: string) {
-  router.push(`/vehicle/${id}`)
+
+async function loadBusiness() {
+  isLoading.value = true
+  try {
+    const [bizRes, vehiclesRes] = await Promise.all([
+      businessAPI.getOne(bizId),
+      businessAPI.getVehicles(bizId),
+    ])
+    business.value = bizRes.data.data ?? bizRes.data
+    vehicles.value = vehiclesRes.data.data ?? vehiclesRes.data
+  } catch (err) {
+    console.error('Failed to load business', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+function goToVehicle(vehicle: any) {
+  router.push({
+    path: `/vehicle/${vehicle.Vehicle_ID}`,
+    query: { businessId: vehicle.Business_ID }
+  })
+>>>>>>> bd2fdfa (added owner negotiate page)
 }
 
 onMounted(loadBusiness)

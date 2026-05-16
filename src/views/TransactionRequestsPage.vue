@@ -57,8 +57,7 @@
                 <div class="v-info">
                   <p class="v-name">{{ tx.Vehicle_Model }} ({{ tx.Vehicle_Type }})</p>
                   <p class="v-dates">
-                    📅 {{ formatDateTime(tx.Start_Date_and_Time) }} →
-                    {{ formatDateTime(tx.End_Date_and_Time) }}
+                    📅 {{ formatDateTime(tx.Start_Date) }} → {{ formatDateTime(tx.End_Date) }}
                   </p>
                   <p class="v-meta">
                     {{ tx.Rental_Duration }} day(s) ·
@@ -72,7 +71,7 @@
               <div class="amount-row">
                 <span class="amount-label">Total Amount</span>
                 <span class="amount-val">
-                  ₱{{ (Number(tx.Daily_Rate) * Number(tx.Rental_Duration)).toLocaleString() }}
+                  ₱{{ Number(tx.Total_Amount).toLocaleString() }}
                 </span>
               </div>
 
@@ -87,14 +86,14 @@
                   :disabled="loadingId === tx.Transaction_ID">
                   Decline
                 </button>
-                <button class="btn-confirm" @click="updateStatus(tx, 'Confirmed')"
+                <button class="btn-confirm" @click="updateStatus(tx, 'Reserved')"
                   :disabled="loadingId === tx.Transaction_ID">
                   {{ loadingId === tx.Transaction_ID ? '...' : '✓ Confirm' }}
                 </button>
               </div>
 
               <!-- Ongoing / Complete -->
-              <div class="req-actions" v-if="tx.Rental_Status === 'Confirmed'">
+              <div class="req-actions" v-if="tx.Rental_Status === 'Reserved'">
                 <button class="btn-ongoing" @click="updateStatus(tx, 'Ongoing')"
                   :disabled="loadingId === tx.Transaction_ID">
                   Start Rental 🚗
@@ -104,6 +103,13 @@
                 <button class="btn-complete" @click="updateStatus(tx, 'Completed')"
                   :disabled="loadingId === tx.Transaction_ID">
                   Mark as Completed ✓
+                </button>
+              </div>
+
+              <div class="req-actions" v-if="tx.Rental_Status === 'Completed'">
+                <button class="btn-receipt" @click="goToReceipt(tx)">
+                  <ion-icon name="receipt-outline"></ion-icon>
+                  View Receipt
                 </button>
               </div>
 
@@ -152,9 +158,9 @@ import { IonPage, IonContent, IonIcon, useIonRouter, onIonViewWillEnter } from '
 import { addIcons } from 'ionicons'
 import {
   arrowBackOutline, carOutline, gridOutline,
-  receiptOutline, addOutline, listOutline, barChartOutline
+  receiptOutline, addOutline, listOutline, barChartOutline,
 } from 'ionicons/icons'
-import { transactionAPI } from '@/api'
+import { transactionAPI, receiptAPI, paymentAPI } from '@/api'
 
 addIcons({
   'arrow-back-outline': arrowBackOutline,
@@ -174,7 +180,7 @@ const transactions = ref<any[]>([])
 
 const tabs = [
   { key: 'Pending', label: 'Pending' },
-  { key: 'Confirmed', label: 'Confirmed' },
+  { key: 'Reserved', label: 'Reserved' },
   { key: 'Ongoing', label: 'Ongoing' },
   { key: 'Completed', label: 'Done' },
   { key: 'Cancelled', label: 'Declined' },
@@ -190,7 +196,7 @@ const countFor = (status: string) =>
 const emptyFor = (status: string) => {
   const map: Record<string, any> = {
     Pending: { icon: '🕐', title: 'No pending requests', sub: 'New booking requests will appear here.' },
-    Confirmed: { icon: '✅', title: 'No confirmed bookings', sub: 'Confirmed requests will appear here.' },
+    Reserved: { icon: '📋', title: 'No reserved bookings', sub: 'Reserved requests will appear here.' },
     Ongoing: { icon: '🚗', title: 'No ongoing rentals', sub: 'Active rentals will appear here.' },
     Completed: { icon: '✔', title: 'No completed rentals', sub: 'Completed transactions will appear here.' },
     Cancelled: { icon: '❌', title: 'No declined requests', sub: 'Declined requests will appear here.' },
@@ -200,7 +206,7 @@ const emptyFor = (status: string) => {
 
 const statusBorderClass = (status: string) => {
   const map: Record<string, string> = {
-    Pending: 'border-pending', Confirmed: 'border-confirmed',
+    Pending: 'border-pending', Reserved: 'border-reserved',
     Ongoing: 'border-ongoing', Completed: 'border-done', Cancelled: 'border-cancelled'
   }
   return map[status] || ''
@@ -208,7 +214,7 @@ const statusBorderClass = (status: string) => {
 
 const statusChipClass = (status: string) => {
   const map: Record<string, string> = {
-    Pending: 'chip-pending', Confirmed: 'chip-confirmed',
+    Pending: 'chip-pending', Reserved: 'chip-reserved',
     Ongoing: 'chip-ongoing', Completed: 'chip-done', Cancelled: 'chip-cancelled'
   }
   return map[status] || ''
@@ -230,8 +236,16 @@ const formatDateTime = (dt: string) => {
 const loadTransactions = async () => {
   isLoading.value = true
   try {
+<<<<<<< HEAD
     const res = await transactionAPI.getAll({ role: 'owner' })
     transactions.value = res.data.data ?? res.data
+=======
+    const res = await transactionAPI.getAll()
+    // Filter to only show transactions where logged in user is the OWNER
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const all = res.data.data ?? res.data
+    transactions.value = all.filter((tx: any) => tx.Owner_Account_ID === user.Account_ID)
+>>>>>>> bd2fdfa (added owner negotiate page)
   } catch (err) {
     console.error('Failed to load requests', err)
   } finally {
@@ -239,17 +253,56 @@ const loadTransactions = async () => {
   }
 }
 
-const updateStatus = async (tx: any, status: 'Confirmed' | 'Ongoing' | 'Completed' | 'Cancelled') => {
+// UPDATE updateStatus in TransactionRequestsPage
+const updateStatus = async (tx: any, status: 'Reserved' | 'Ongoing' | 'Completed' | 'Cancelled') => {
   loadingId.value = tx.Transaction_ID
   try {
     await transactionAPI.updateStatus(tx.Transaction_ID, status)
     tx.Rental_Status = status
+
+    // When completing — create payment and receipt
+    if (status === 'Completed') {
+      const payRes = await paymentAPI.create({
+        transaction_id:  tx.Transaction_ID,
+        total_amount:    Number(tx.Total_Amount),
+        payment_method:  'Cash',
+        payment_date:    new Date().toISOString().split('T')[0],
+        payment_status:  'Paid',
+      })
+      const paymentId = payRes.data.data.Payment_ID
+
+      const recRes = await receiptAPI.create({
+        payment_id:   paymentId,
+        amount_paid:  Number(tx.Total_Amount),
+        receipt_date: new Date().toISOString().split('T')[0],
+        payment_type: 'Full',
+      })
+      tx._receiptId = recRes.data.data.Receipt_ID
+    }
+
     activeTab.value = status === 'Cancelled' ? 'Cancelled' : status
   } catch (err: any) {
     console.error(err.response?.data?.message || 'Failed')
   } finally {
     loadingId.value = ''
   }
+}
+
+// ADD this function
+function goToReceipt(tx: any) {
+  router.push({
+    path: '/receipt',
+    query: {
+      receiptId:       tx._receiptId || '',
+      transactionId:   tx.Transaction_ID,
+      vehicleName:     tx.Vehicle_Model,
+      days:            tx.Rental_Duration,
+      startDate:       tx.Start_Date,
+      endDate:         tx.End_Date,
+      pickupLocation:  tx.Pickup_Location,
+      amount:          tx.Total_Amount,
+    }
+  })
 }
 
 const goBack = () => router.push('/owner-dashboard')
@@ -304,6 +357,26 @@ onMounted(loadTransactions)
   z-index: 1;
   padding: 48px 16px 20px;
 }
+
+.btn-receipt {
+  flex: 1;
+  padding: 10px;
+  background: rgba(252, 137, 208, 0.2);
+  border: 1px solid #fc89d0;
+  border-radius: 10px;
+  color: #fc89d0;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Gil Sans MT', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.border-reserved { border-left-color: #fc89d0; }
+.chip-reserved   { background: rgba(252,137,208,0.2); color: #fc89d0; }
 
 .post-header {
   display: flex;
@@ -433,10 +506,6 @@ onMounted(loadTransactions)
 
 .border-pending {
   border-left-color: #f0c87c;
-}
-
-.border-confirmed {
-  border-left-color: #fc89d0;
 }
 
 .border-ongoing {
@@ -572,11 +641,6 @@ onMounted(loadTransactions)
 .chip-pending {
   background: rgba(240, 200, 124, 0.2);
   color: #f0c87c;
-}
-
-.chip-confirmed {
-  background: rgba(252, 137, 208, 0.2);
-  color: #fc89d0;
 }
 
 .chip-ongoing {

@@ -26,10 +26,10 @@
               <label>Vehicle Type</label>
               <select v-model="form.vehicleType" class="input-field">
                 <option value="" disabled>Select type</option>
-                <option>Tricycle</option>
-                <option>Motorcycle</option>
-                <option>Car</option>
-                <option>Van</option>
+                <option>Cars</option>
+                <option>Vans</option>
+                <option>Motorcycles</option>
+                <option>Trucks</option>
               </select>
             </div>
 
@@ -81,25 +81,23 @@
               <input type="text" placeholder="e.g., Petron" v-model="form.fuelType" class="input-field" />
             </div>
 
-            <!-- With/Without Driver -->
+            <!--Add Photos-->
             <div class="form-group">
-              <label>Driver Option</label>
-              <div class="driver-options">
-                <div :class="['driver-btn', form.withDriver === 'with' ? 'driver-active' : '']"
-                  @click="form.withDriver = 'with'">
-                  With Driver
-                </div>
-                <div :class="['driver-btn', form.withDriver === 'without' ? 'driver-active' : '']"
-                  @click="form.withDriver = 'without'">
-                  Without Driver
-                </div>
-                <div :class="['driver-btn', form.withDriver === 'both' ? 'driver-active' : '']"
-                  @click="form.withDriver = 'both'">
-                  Both
+              <label>Vehicle Photos (optional, max 5)</label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                @change="onPhotoSelect"
+                class="input-field"
+              />
+              <div class="photo-preview-row" v-if="photoUrls.length > 0">
+                <div v-for="(url, i) in photoUrls" :key="i" class="photo-preview">
+                  <img :src="url" class="preview-img" />
+                  <span class="primary-tag" v-if="i === 0">Primary</span>
                 </div>
               </div>
             </div>
-
             <!-- Error Message -->
             <p class="error-txt" v-if="errorMessage">{{ errorMessage }}</p>
 
@@ -114,36 +112,39 @@
   </ion-page>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useIonRouter, IonIcon, IonPage, IonContent } from '@ionic/vue'
 import { addIcons } from 'ionicons'
 import { arrowBackOutline } from 'ionicons/icons'
-import { vehicleAPI } from '@/api'
-addIcons({
-  'arrow-back-outline': arrowBackOutline,
-})
+import { vehicleAPI, vehiclePhotoAPI } from '@/api'
+
+addIcons({ 'arrow-back-outline': arrowBackOutline })
 
 const router = useIonRouter()
-
 const errorMessage = ref('')
-
 const isLoading = ref(false)
+const photoFiles = ref<File[]>([])
+const photoUrls = ref<string[]>([])
 
 const form = reactive({
-  vehicleType: '',
-  vehicleModel: '',
-  vehicleColor: '',
-  seatCapacity: '',
-  dailyRate: '',
-  plateNumber: '',
+  vehicleType:      '',
+  vehicleModel:     '',
+  vehicleColor:     '',
+  seatCapacity:     '',
+  dailyRate:        '',
+  plateNumber:      '',
   registrationDate: '',
-  fuelType:'',
-  withDriver: '',
+  fuelType:         '',
 })
 
-const goBack = () => {
-  router.back()
+const goBack = () => router.back()
+
+function onPhotoSelect(event: Event) {
+  const input = event.target as HTMLInputElement
+  if (!input.files) return
+  photoFiles.value = Array.from(input.files).slice(0, 5)
+  photoUrls.value  = photoFiles.value.map(f => URL.createObjectURL(f))
 }
 
 const submitPost = async () => {
@@ -152,47 +153,57 @@ const submitPost = async () => {
     !form.vehicleModel ||
     !form.vehicleColor ||
     !form.seatCapacity ||
-    !form.dailyRate === ''||
+    !form.dailyRate ||
     !form.plateNumber ||
-    !form.registrationDate ||
-    !form.withDriver
+    !form.registrationDate
   ) {
-    errorMessage.value = 'Please fill in all fields'
+    errorMessage.value = 'Please fill in all required fields'
     return
   }
+
   isLoading.value = true
   errorMessage.value = ''
+
   try {
-    await vehicleAPI.post({
-      vehicle_type: form.vehicleType,
-      vehicle_model: form.vehicleModel,
-      vehicle_color: form.vehicleColor,
-      seat_capacity: Number(form.seatCapacity),
-      daily_rate: Number(form.dailyRate),
-      plate_number: form.plateNumber,
+    // 1. Create vehicle
+    const res = await vehicleAPI.post({
+      vehicle_type:      form.vehicleType,
+      vehicle_model:     form.vehicleModel,
+      vehicle_color:     form.vehicleColor,
+      seat_capacity:     Number(form.seatCapacity),
+      daily_rate:        Number(form.dailyRate),
+      plate_number:      form.plateNumber,
       registration_date: form.registrationDate,
-      fuel_type: form.fuelType || null,
-      with_driver: form.withDriver === 'with' ? 1:
-                   form.withDriver === 'without' ? 0 : 2
+      fuel_type:         form.fuelType || undefined,
     })
-    console.log('Redirecting...')
+
+    const newVehicleId = res.data.data.Vehicle_ID
+
+    // 2. Upload photos if any
+    for (let i = 0; i < photoFiles.value.length; i++) {
+      const file = photoFiles.value[i]
+      await vehiclePhotoAPI.upload({
+        vehicle_id: newVehicleId,
+        photo_url:  `uploads/${file.name}`,
+        is_primary: i === 0 ? 1 : 0
+      })
+    }
+
     router.push('/listings')
-  }
-  catch (err) {
+
+  } catch (err: any) {
     if (err.response?.status === 403) {
       errorMessage.value = "Driver's license is required to list a vehicle"
-    }
-    else if (err.response?.data?.message) {
+    } else if (err.response?.data?.message) {
       errorMessage.value = err.response.data.message
-    }
-    else {
+    } else {
       errorMessage.value = 'Failed to post vehicle. Try again.'
     }
-  }
-  finally {
+  } finally {
     isLoading.value = false
   }
 }
+
 </script>
 
 <style scoped>
@@ -364,5 +375,33 @@ select.input-field option {
 
 .btn:hover {
   background: #fc89d0;
+}
+.photo-preview-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.photo-preview {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.primary-tag {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(183,11,103,0.7);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  padding: 2px 0;
 }
 </style>

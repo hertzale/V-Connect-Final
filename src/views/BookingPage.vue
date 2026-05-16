@@ -222,16 +222,14 @@ async function confirmBooking() {
     ? 'Self Pickup'
     : deliveryAddress.value
 
-  const startDateTime = `${startDate.value} ${pickupTime.value}:00`
-  const endDateTime   = `${endDate.value} ${pickupTime.value}:00`
 
   try {
     await transactionAPI.create({
-      vehicle_id:            vehicleId.value,
-      start_date:   startDateTime,
-      end_date:     endDateTime,
-      start_time:   '${pickupTime.value}:00',
-      end_time:   '${pickupTime.value}:00',
+      vehicle_id:   vehicleId.value,
+      start_date:   startDate.value,
+      end_date:     endDate.value,
+      start_time:   `${pickupTime.value}:00`,
+      end_time:   `${pickupTime.value}:00`,
       pickup_location:       pickupLocation,
       drop_off_location:     pickupLocation,
       with_driver:           withDriverOpt.value === 1 ? 1 : 0,

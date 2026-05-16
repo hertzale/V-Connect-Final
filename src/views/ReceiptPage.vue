@@ -3,9 +3,6 @@
     <ion-content :fullscreen="true">
       <div class="page">
 
-        <img src="@/assets/new-bg.png" alt="Vcon Background" class="bg-mobile" />
-        <img src="@/assets/v-connect-bg-web.png" class="bg-web" />
-
         <div class="container">
 
           <!-- Header -->
@@ -45,7 +42,7 @@
             <div class="receipt-section">
               <p class="rs-label">Transaction Details</p>
               <div class="receipt-row">
-                <span class="rr-key">Transaction ID</span>
+                <span class="rr-key">Payment ID</span>
                 <span class="rr-val">{{ receipt.Payment_ID || '—' }}</span>
               </div>
               <div class="receipt-row">
@@ -149,6 +146,7 @@ import { addIcons } from 'ionicons'
 import {
   arrowBackOutline, listOutline, homeOutline
 } from 'ionicons/icons'
+import { receiptAPI, paymentAPI } from '@/api'
 
 addIcons({
   'arrow-back-outline': arrowBackOutline,
@@ -176,26 +174,6 @@ const receipt = ref<any>({
   Pickup_Location:  route.query.pickupLocation || '',
 })
 
-// If no data passed via query, use mock for demo
-const loadMockIfEmpty = () => {
-  if (!receipt.value.Receipt_ID) {
-    receipt.value = {
-      Receipt_ID:       'RCP-0001',
-      Payment_ID:       'PAY-0001',
-      Amount_Paid:      2250,
-      Payment_Type:     'Full',
-      Remarks:          'Paid in full upon pickup.',
-      Receipt_Date:     new Date().toISOString().split('T')[0],
-      Recorded_By:      'OWN-001',
-      Recorded_By_Name: 'AutoLux Rentals',
-      Vehicle_Model:    'Toyota Vios 2022',
-      Rental_Duration:  3,
-      Start_Date:       '2025-06-10',
-      End_Date:         '2025-06-13',
-      Pickup_Location:  'Naga City',
-    }
-  }
-}
 
 const formatDate = (dt: string) => {
   if (!dt) return '—'
@@ -206,10 +184,35 @@ const formatDate = (dt: string) => {
 
 const goBack           = () => router.back()
 const goToTransactions = () => router.push('/transactions')
-const goHome           = () => router.push('/home')
 
-onIonViewWillEnter(loadMockIfEmpty)
-onMounted(loadMockIfEmpty)
+const goHome = () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  if (user.Role === 'Business_Owner') {
+    router.push('/owner-dashboard')
+  } else {
+    router.push('/home')
+  }
+}
+
+onIonViewWillEnter(async () => {
+  const receiptId     = route.query.receiptId as string
+  const transactionId = route.query.transactionId as string
+
+  if (receiptId) {
+    // Load by receipt ID directly
+    const res = await receiptAPI.getOne(receiptId)
+    receipt.value = res.data.data ?? res.data
+  } else if (transactionId) {
+    // Load by transaction ID via payment
+    const payRes = await paymentAPI.getByTransaction(transactionId)
+    const payment = payRes.data.data?.[0] ?? payRes.data?.[0]
+    if (payment?.Payment_ID) {
+      const recRes = await receiptAPI.getByPayment(payment.Payment_ID)
+      receipt.value = recRes.data.data?.[0] ?? recRes.data?.[0]
+    }
+  }
+})
+
 </script>
 
 <style scoped>

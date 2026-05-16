@@ -29,6 +29,11 @@ const routes: Array<RouteRecordRaw> = [
     name: "Register",
     component: () => import("../views/RegisterPage.vue"),
   },
+  {
+    path: "/receipt",
+    name: "Receipt",
+    component: () => import("../views/ReceiptPage.vue"),
+  },
 
   // ── Customer ──────────────────────────────────────────────
   {
@@ -42,14 +47,12 @@ const routes: Array<RouteRecordRaw> = [
     path: "/business/:id",
     name: "BusinessDetail",
     component: () => import("../views/BusinessDetailPage.vue"),
-    beforeEnter: requireAuth
   },
   {
     //hardcoded
     path: "/vehicle/:id",
     name: "VehicleDetail",
     component: () => import("../views/VehicleDetailPage.vue"),
-    beforeEnter: requireAuth
   },
   {
     //hardcoded
@@ -61,7 +64,6 @@ const routes: Array<RouteRecordRaw> = [
     path: "/booking",
     name: "Booking",
     component: () => import("../views/BookingPage.vue"),
-    beforeEnter: requireAuth
   },
   {
     path: "/transactions",
@@ -72,7 +74,6 @@ const routes: Array<RouteRecordRaw> = [
     path: "/profile",
     name: "Profile",
     component: () => import("../views/ProfilePage.vue"),
-    beforeEnter: requireAuth
   },
   {
     path: "/notifications",
@@ -83,6 +84,11 @@ const routes: Array<RouteRecordRaw> = [
     path: "/chat",
     name: "Chats",
     component: () => import("../views/ChatListPage.vue"),
+  },
+  {
+    path: "/feedback",
+    name: "Feedback",
+    component: () => import("../views/FeedbackPage.vue"),
   },
 
   // ── Business Owner ────────────────────────────────────────
@@ -100,6 +106,11 @@ const routes: Array<RouteRecordRaw> = [
     path: "/listings",
     name: "Listings",
     component: () => import("../views/ListingsPage.vue"),
+  },
+  {
+    path: '/owner-negotiate/:id',
+    name: 'OwnerNegotiate',
+    component: () => import('../views/OwnerNegotiatePage.vue'),
   },
   {
     path: "/transaction-requests",

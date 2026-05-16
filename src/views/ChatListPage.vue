@@ -86,7 +86,7 @@
     <!-- TAB BAR -->
     <div class="tab-bar">
             <!--Customer Tabs-->
-      <template v-if="userRole === 'Customer'">
+      <template v-if="userRole?.toLowerCase() === 'customer'">
         <div class="tab-item" @click="goTo('/home')">
           <ion-icon name="grid-outline"></ion-icon>
           <span>Home</span>
@@ -165,22 +165,9 @@ const router = useIonRouter()
 const searchQuery = ref('')
 const isLoading = ref(false)
 
-interface Chat {
-  id: number
-  vehicleName: string
-  emoji: string
-  bizName: string
-  lastMessage: string
-  lastMessageTime: string
-  listedPrice: number
-  myOffer?: number
-  agreedPrice?: number
-  unreadCount: number
-  status: 'ongoing' | 'agreed'
-}
-
-const chats = ref<Chat[]>([])
-// TODO: Replace with negotiationsAPI.getActive() when backend route is added
+const chats = ref<any[]>([])
+const userRole = ref('')
+>>>>>>> bd2fdfa (added owner negotiate page)
 
 const filteredChats = computed(() =>
   chats.value.filter(c =>
@@ -213,11 +200,9 @@ function loadUserRole() {
     const user = JSON.parse(savedUser)
 
     // adjust this depending on your backend field
-    userRole.value =
-      user.Role ||
-      user.Account_Role ||
-      user.User_Role ||
-      ''
+    userRole.value = user.Role || ''
+
+    console.log('USER ROLE:', userRole.value)
   }
 }
 
