@@ -228,11 +228,16 @@ async function confirmBooking() {
   try {
     await transactionAPI.create({
       vehicle_id:            vehicleId.value,
-      start_date_and_time:   startDateTime,
-      end_date_and_time:     endDateTime,
+      start_date:   startDateTime,
+      end_date:     endDateTime,
+      start_time:   '${pickupTime.value}:00',
+      end_time:   '${pickupTime.value}:00',
       pickup_location:       pickupLocation,
       drop_off_location:     pickupLocation,
       with_driver:           withDriverOpt.value === 1 ? 1 : 0,
+      other_details:   notes.value || undefined,
+      driver_name:     driverName.value || undefined,
+      drivers_license: licenseNum.value || undefined,
     })
     router.push('/transactions')
   } catch (err: any) {

@@ -35,7 +35,6 @@ const routes: Array<RouteRecordRaw> = [
     path: "/home",
     name: "Home",
     component: () => import("../views/HomePage.vue"),
-    beforeEnter: requireAuth
 
   },
   {
@@ -57,7 +56,6 @@ const routes: Array<RouteRecordRaw> = [
     path: "/negotiate/:id?",
     name: "Negotiate",
     component: () => import("../views/NegotiatePage.vue"),
-    beforeEnter: requireAuth
   },
   {
     path: "/booking",
@@ -87,7 +85,6 @@ const routes: Array<RouteRecordRaw> = [
     path: "/chat",
     name: "Chats",
     component: () => import("../views/ChatListPage.vue"),
-    beforeEnter: requireAuth
   },
 
   // ── Business Owner ────────────────────────────────────────

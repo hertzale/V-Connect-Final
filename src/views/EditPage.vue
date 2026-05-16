@@ -22,10 +22,10 @@
               <label>Vehicle Type</label>
               <select v-model="form.vehicleType" class="input-field">
                 <option value="" disabled>Select type</option>
-                <option>Tricycle</option>
-                <option>Motorcycle</option>
-                <option>Car</option>
-                <option>Van</option>
+                <option>Cars</option>
+                <option>Vans</option>
+                <option>Motorcycles</option>
+                <option>Trucks</option>
               </select>
             </div>
 

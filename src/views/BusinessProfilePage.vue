@@ -26,18 +26,15 @@
           </div>
         </div>
         <div class="biz-header-info">
-          <h1 class="biz-name">{{ biz.name }}</h1>
+          <h1 class="biz-name">{{ biz.Business_Name }}</h1>
           <div class="biz-meta-row">
             <div class="biz-meta-item">
               <ion-icon name="star" class="star-icon"></ion-icon>
-              {{ biz.rating }}
+              {{ biz.Service_Area }}
             </div>
-            <span class="dot">·</span>
-            <div class="biz-meta-item">{{ biz.totalRentals }} rentals</div>
-            <span class="dot">·</span>
             <div class="biz-meta-item">
               <ion-icon name="location-outline"></ion-icon>
-              {{ biz.location }}
+              {{ biz.Business_Address }}
             </div>
           </div>
           <div class="biz-type-badge">🏢 Rental Business</div>
@@ -45,23 +42,8 @@
 
         <div class="biz-stats">
           <div class="bs-item">
-            <div class="bs-val">{{ biz.vehicleCount }}</div>
+            <div class="bs-val">{{ vehicleCount }}</div>
             <div class="bs-label">Vehicles</div>
-          </div>
-          <div class="bs-divider"></div>
-          <div class="bs-item">
-            <div class="bs-val">{{ biz.totalRentals }}</div>
-            <div class="bs-label">Rentals</div>
-          </div>
-          <div class="bs-divider"></div>
-          <div class="bs-item">
-            <div class="bs-val">{{ biz.responseTime }}</div>
-            <div class="bs-label">Response</div>
-          </div>
-          <div class="bs-divider"></div>
-          <div class="bs-item">
-            <div class="bs-val">{{ biz.memberSince }}</div>
-            <div class="bs-label">Since</div>
           </div>
         </div>
       </div>
@@ -73,54 +55,54 @@
         <template v-if="!editMode">
           <div class="info-row">
             <div class="ir-label">Business Name</div>
-            <div class="ir-val">{{ biz.name }}</div>
+            <div class="ir-val">{{ biz.Business_Name }}</div>
           </div>
           <div class="info-row">
             <div class="ir-label">Description</div>
-            <div class="ir-val">{{ biz.description }}</div>
+            <div class="ir-val">{{ biz.Description }}</div>
           </div>
           <div class="info-row">
             <div class="ir-label">Address</div>
-            <div class="ir-val">{{ biz.address }}</div>
+            <div class="ir-val">{{ biz.Business_Address }}</div>
           </div>
           <div class="info-row">
             <div class="ir-label">Contact Number</div>
-            <div class="ir-val">{{ biz.phone }}</div>
+            <div class="ir-val">{{ biz.Business_ContactNo }}</div>
           </div>
           <div class="info-row">
             <div class="ir-label">Email</div>
-            <div class="ir-val">{{ biz.email }}</div>
+            <div class="ir-val">{{ biz.Business_Email }}</div>
           </div>
           <div class="info-row last">
-            <div class="ir-label">Operating Hours</div>
-            <div class="ir-val">{{ biz.hours }}</div>
+            <div class="ir-label">Service Area</div>
+            <div class="ir-val">{{ biz.Service_Area }}</div>
           </div>
         </template>
 
         <template v-else>
           <div class="form-group">
             <label class="form-label">Business Name</label>
-            <input v-model="biz.name" type="text" class="form-input" />
+            <input v-model="biz.Business_Name" type="text" class="form-input" />
           </div>
           <div class="form-group">
             <label class="form-label">Description</label>
-            <textarea v-model="biz.description" class="form-textarea"></textarea>
+            <textarea v-model="biz.Description" class="form-textarea"></textarea>
           </div>
           <div class="form-group">
             <label class="form-label">Address</label>
-            <textarea v-model="biz.address" class="form-textarea" style="height:60px"></textarea>
+            <textarea v-model="biz.Business_Address" class="form-textarea" style="height:60px"></textarea>
           </div>
           <div class="form-group">
             <label class="form-label">Contact Number</label>
-            <input v-model="biz.phone" type="tel" class="form-input" />
+            <input v-model="biz.Business_ContactNo" type="tel" class="form-input" />
           </div>
           <div class="form-group">
             <label class="form-label">Email</label>
-            <input v-model="biz.email" type="email" class="form-input" />
+            <input v-model="biz.Business_Email" type="email" class="form-input" />
           </div>
           <div class="form-group">
-            <label class="form-label">Operating Hours</label>
-            <input v-model="biz.hours" type="text" class="form-input" />
+            <label class="form-label">Service Area</label>
+            <input v-model="biz.Service_Area" type="text" class="form-input" />
           </div>
           <ion-button expand="block" class="btn-save" @click="saveProfile">
             Save Changes
@@ -133,11 +115,8 @@
       <div class="section-card">
         <h2 class="card-title">Vehicle Types Offered</h2>
         <div class="type-tags">
-          <div v-for="type in biz.vehicleTypes" :key="type" class="type-tag">
+          <div v-for="type in vehicleTypes" :key="type" class="type-tag">
             {{ type }}
-          </div>
-          <div class="type-tag add" v-if="editMode" @click="addType">
-            <ion-icon name="add-outline"></ion-icon> Add Type
           </div>
         </div>
       </div>
@@ -151,8 +130,7 @@
         <div class="license-row">
           <ion-icon name="card-outline" class="lic-icon"></ion-icon>
           <div>
-            <div class="lic-num">{{ biz.ownerLicense }}</div>
-            <div class="lic-exp">Expires: {{ biz.licenseExp }}</div>
+            <div class="lic-num">{{ ownerLicense }}</div>
           </div>
         </div>
       </div>
@@ -173,39 +151,91 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useIonRouter } from '@ionic/vue'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
   IonButton, IonContent, IonIcon
 } from '@ionic/vue'
+import { businessAPI, personAPI } from '@/api'
 
+const router   = useIonRouter()
 const editMode = ref(false)
-
+const isLoading = ref(false)
+const errorMsg  = ref('')
+const ownerLicense = ref('')  // you would load this from the business data
+const bizID = ref('')  // store the business ID
+const vehicleTypes = ref<string[]>([])
+// form fields mapped to DB columns
 const biz = ref({
-  name: 'AutoLux Rentals',
-  description: 'Premium vehicle rental service offering reliable cars, vans, and motorcycles for all your travel needs. Serving Metro Manila and nearby areas.',
-  address: '123 Ayala Ave, Makati City, Metro Manila',
-  phone: '+63 912 345 6789',
-  email: 'autolux@email.com',
-  hours: 'Mon–Sun, 6:00 AM – 10:00 PM',
-  location: 'Makati City',
-  rating: '4.8',
-  vehicleCount: 12,
-  totalRentals: 342,
-  responseTime: '~1hr',
-  memberSince: '2023',
-  vehicleTypes: ['🚗 Cars', '🚐 Vans', '🏍️ Motorcycles'],
-  ownerLicense: 'N01-23-456789',
-  licenseExp: 'Dec 2027',
+  Business_Name:      '',
+  Description:        '',
+  Business_Address:   '',
+  Business_ContactNo: '',
+  Business_Email:     '',
+  Service_Area:       '',
 })
 
-function saveProfile() {
-  editMode.value = false
+// read-only from DB — no matching column, derive from vehicles
+const vehicleCount = ref(0)
+
+async function loadBusiness() {
+  isLoading.value = true
+  try {
+    const res = await businessAPI.getAll()         // or getOne(id) if you have the ID
+    const data = res.data.data ?? res.data
+    const myBiz = Array.isArray(data) ? data[0] : data   // get owner's business
+    if (myBiz) {
+      bizID.value = myBiz.Business_ID ?? ''
+      biz.value.Business_Name      = myBiz.Business_Name      ?? ''
+      biz.value.Description        = myBiz.Description        ?? ''
+      biz.value.Business_Address   = myBiz.Business_Address   ?? ''
+      biz.value.Business_ContactNo = myBiz.Business_ContactNo ?? ''
+      biz.value.Business_Email     = myBiz.Business_Email     ?? ''
+      biz.value.Service_Area       = myBiz.Service_Area       ?? ''
+
+      const vRes = await businessAPI.getVehicles(bizID.value)
+      const vehicles = vRes.data.data ?? vRes.data
+      vehicleCount.value = vehicles.length
+      vehicleTypes.value = [...new Set<string>(vehicles.map((v: any) => v.Vehicle_Type as string).filter(Boolean))]
+    }
+  } catch (err) {
+    console.error('Failed to load business', err)
+  } finally {
+    isLoading.value = false
+  }
 }
 
-function addType() {
-  // open type selector
+async function loadProfile() {
+  try{
+    const res = await personAPI.getMe()
+    const person = res.data.data ?? res.data
+    ownerLicense.value = person.Drivers_License ?? '--'
+  } catch (err){
+    console.error('Failed to load profile', err)
+  }
 }
+async function saveProfile() {
+  try {
+    // you'll need the business ID — store it when loading
+    await businessAPI.update(bizID.value, {
+      business_name:       biz.value.Business_Name,
+      description:         biz.value.Description,
+      business_address:    biz.value.Business_Address,
+      business_contact_no: biz.value.Business_ContactNo,
+      business_email:      biz.value.Business_Email,
+      service_area:        biz.value.Service_Area,
+    })
+    editMode.value = false
+    router.push('/owner-dashboard') // redirect back to dashboard after saving
+  } catch (err) {
+    errorMsg.value = 'Failed to save. Try again.'
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([loadBusiness(), loadProfile()])
+})
 </script>
 
 <style scoped>

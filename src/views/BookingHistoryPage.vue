@@ -119,7 +119,7 @@
               <div class="tx-details">
                 <div class="tx-row-detail">
                   <ion-icon name="calendar-outline" class="td-icon"></ion-icon>
-                  <span>{{ formatDate(tx.Start_Date_and_Time) }} → {{ formatDate(tx.End_Date_and_Time) }}</span>
+                  <span>{{ formatDate(tx.Start_Date) }} → {{ formatDate(tx.End_Date) }}</span>
                 </div>
                 <div class="tx-row-detail">
                   <ion-icon name="time-outline" class="td-icon"></ion-icon>
@@ -213,7 +213,7 @@ const statusFilter = ref('All')
 const allTransactions = ref<any[]>([])
 const filtered        = ref<any[]>([])
 
-const statusFilters = ['All', 'Pending', 'Confirmed', 'Ongoing', 'Completed', 'Cancelled']
+const statusFilters = ['All', 'Pending', 'Reserved', 'Ongoing', 'Completed', 'Cancelled', 'Overdue']
 
 const currentUser = () => JSON.parse(localStorage.getItem('user') || '{}')
 const isOwnerView = computed(() => currentUser().role === 'Business_Owner')
@@ -297,16 +297,16 @@ const formatDate = (dt: string) => {
 
 const statusBorderClass = (status: string) => {
   const map: Record<string, string> = {
-    Pending: 'border-pending', Confirmed: 'border-confirmed',
-    Ongoing: 'border-ongoing', Completed: 'border-done', Cancelled: 'border-cancelled'
+    Pending: 'border-pending', Reserved: 'border-reserved',
+    Ongoing: 'border-ongoing', Completed: 'border-done', Cancelled: 'border-cancelled', Overdue: 'border-overdue'
   }
   return map[status] || ''
 }
 
 const statusChipClass = (status: string) => {
   const map: Record<string, string> = {
-    Pending: 'chip-pending', Confirmed: 'chip-confirmed',
-    Ongoing: 'chip-ongoing', Completed: 'chip-done', Cancelled: 'chip-cancelled'
+    Pending: 'chip-pending', Reserved: 'chip-reserved',
+    Ongoing: 'chip-ongoing', Completed: 'chip-done', Cancelled: 'chip-cancelled', Overdue: 'chip-overdue'
   }
   return map[status] || ''
 }
@@ -452,10 +452,11 @@ onMounted(loadTransactions)
 /* Transaction Cards */
 .tx-card { border-left: 4px solid rgba(255,255,255,0.2); }
 .border-pending   { border-left-color: #f0c87c; }
-.border-confirmed { border-left-color: #fc89d0; }
+.border-reserved  { border-left-color: #fc89d0; }
 .border-ongoing   { border-left-color: #a8e07c; }
 .border-done      { border-left-color: rgba(255,255,255,0.3); }
 .border-cancelled { border-left-color: #ff9090; }
+.border-overdue   { border-left-color: #ff6b6b; }
 
 .tx-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .tx-icon {
@@ -481,11 +482,11 @@ onMounted(loadTransactions)
   font-family: 'Gil Sans MT', sans-serif;
 }
 .chip-pending   { background: rgba(240,200,124,0.2); color: #f0c87c; }
-.chip-confirmed { background: rgba(252,137,208,0.2); color: #fc89d0; }
+.chip-reserved  { background: rgba(252,137,208,0.2); color: #fc89d0; }
 .chip-ongoing   { background: rgba(168,224,124,0.2); color: #a8e07c; }
 .chip-done      { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); }
 .chip-cancelled { background: rgba(255,144,144,0.2); color: #ff9090; }
-
+.chip-overdue   { background: rgba(255,107,107,0.2); color: #ff6b6b; }
 .tx-divider { height: 1px; background: rgba(255,255,255,0.1); margin-bottom: 10px; }
 
 .tx-details { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }

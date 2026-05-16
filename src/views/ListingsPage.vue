@@ -81,6 +81,7 @@
                   <p class="vehicle-info">
                     {{ vehicle.Vehicle_Type }} · 
                     {{ vehicle.Seat_Capacity }} seats ·
+                    {{ vehicle.Plate_Number }} ·
                     {{ vehicle.Owner_Address || 'No location' }}
                   </p>
                 </div>
@@ -200,7 +201,7 @@ const getStatusClass = (status: string) => {
   return 'badge-maintenance'
 }
 
-const updateStatus = async (id: string, status: string) => {
+const updateStatus = async (id: string, status: 'Available' | 'Rented' | 'Under Maintenance') => {
   try {
     await vehicleAPI.updateStatus(id, status)
     const vehicle = vehicles.value.find((v: any) => v.Vehicle_ID === id)
@@ -225,7 +226,6 @@ const deleteVehicle = async (id: string) => {
 
 const goBack = () => router.push('/owner-dashboard')
 const goToPost = () => router.push('/post')
-const goTo = (path: string) => router.push(path)
 </script>
 
 <style scoped>

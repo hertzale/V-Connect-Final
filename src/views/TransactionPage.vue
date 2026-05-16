@@ -220,7 +220,7 @@ function openReview(tx: Transaction) {
 }
 
 function rebookVehicle(tx: Transaction) {
-  router.push('/booking')
+  router.push(`/booking?vehicleId=${tx.id}`)
 }
 
 function doRefresh(event: any) {

@@ -14,51 +14,56 @@
     </ion-header>
 
     <ion-content class="page-content">
-
-      <!-- Business Header -->
-      <div class="biz-header" :style="{ background: business.color }">
-        <div class="biz-header-emoji">{{ business.emoji }}</div>
-        <div class="biz-header-overlay">
-          <h1 class="biz-header-name">{{ business.name }}</h1>
-          <div class="biz-header-meta">
-            <ion-icon name="star" class="star-icon"></ion-icon>
-            <span>{{ business.rating }}</span>
-            <span class="dot">·</span>
-            <span>{{ business.totalRentals }} rentals</span>
-            <span class="dot">·</span>
-            <span>{{ business.location }}</span>
-          </div>
-        </div>
+      <!--Loading-->
+      <div v-if="isLoading" style="text-align:center; padding: 60px 20px; color: #999;">
+        Loading...
       </div>
 
+      <!--NOT FoUND-->
+      <div v-else-if="!business" style="text-align:center; padding: 60px 20px; color: #999;">
+        Business not found.
+      </div>
+      
+      <div v-else>
+      <!-- Business Header -->
+        <div class="biz-header">
+          <div class="biz-header-emoji">🚗</div>
+          <div class="biz-header-overlay">
+            <h1 class="biz-header-name">{{ business?.Business_Name }}</h1>
+            <div class="biz-header-meta">
+              <ion-icon name="location-outline" class="star-icon"></ion-icon>
+              <span>{{ business?.Service_Area }}</span>
+            </div>
+          </div>
+        </div>
       <!-- Stats Row -->
       <div class="stats-row">
         <div class="stat-item">
-          <div class="stat-val">{{ business.vehicleCount }}</div>
+          <div class="stat-val">{{ vehicles.length }}</div>
           <div class="stat-lbl">Vehicles</div>
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
-          <div class="stat-val">{{ business.rating }}</div>
-          <div class="stat-lbl">Rating</div>
+          <div class="stat-val">{{ business?.Business_Email ?? '—' }}</div>
+          <div class="stat-lbl">Email</div>
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
-          <div class="stat-val">{{ business.responseTime }}</div>
-          <div class="stat-lbl">Response</div>
+          <div class="stat-val">{{ business?.Business_ContactNo ?? '—' }}</div>
+          <div class="stat-lbl">Contact</div>
         </div>
       </div>
 
       <!-- About -->
       <div class="section">
         <h2 class="section-title">About</h2>
-        <p class="about-text">{{ business.about }}</p>
+        <p class="about-text">{{ business?.Description ?? 'No description available.' }}</p>
         <div class="contact-row">
           <div class="contact-chip">
-            <ion-icon name="call-outline"></ion-icon> {{ business.phone }}
+            <ion-icon name="call-outline"></ion-icon> {{ business?.Business_ContactNo ?? '—' }}
           </div>
           <div class="contact-chip">
-            <ion-icon name="location-outline"></ion-icon> {{ business.location }}
+            <ion-icon name="location-outline"></ion-icon> {{ business?.Service_Area ?? '—' }}
           </div>
         </div>
       </div>
@@ -86,31 +91,32 @@
         <div class="vehicles-grid">
           <div
             v-for="v in filteredVehicles"
-            :key="v.id"
+            :key="v.Vehicle_ID"
             class="vehicle-card"
-            @click="goToVehicle(v.id)"
+            @click="goToVehicle(v.Vehicle_ID)"
           >
             <div class="vehicle-img-wrapper">
-              <div class="vehicle-img-placeholder">{{ v.emoji }}</div>
-              <div class="vehicle-status" :class="v.available ? 'avail' : 'unavail'">
-                {{ v.available ? 'Available' : 'Booked' }}
+              <div class="vehicle-img-placeholder">🚗</div>
+              <div class="vehicle-status" :class="v.Vehicle_Status === 'Available' ? 'avail' : 'unavail'">
+                {{ v.Vehicle_Status }}
               </div>
             </div>
             <div class="vehicle-info">
-              <div class="vehicle-name">{{ v.name }}</div>
-              <div class="vehicle-type">{{ v.type }}</div>
+              <div class="vehicle-name">{{ v.Vehicle_Model }}</div>
+              <div class="vehicle-type">{{ v.Vehicle_Type }}</div>
               <div class="vehicle-price">
-                <span class="price-val">₱{{ v.price }}</span>
+                <span class="price-val">₱{{ Number(v.Daily_Rate).toLocaleString() }}</span>
                 <span class="price-unit">/day</span>
               </div>
               <div class="vehicle-specs">
-                <span>{{ v.seats }} seats</span>
+                <span>{{ v.Seat_Capacity }} seats</span>
                 <span class="dot">·</span>
-                <span>{{ v.transmission }}</span>
+                <span>{{ v.Fuel_Type }}</span>
               </div>
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       <div style="height: 100px"></div>
@@ -133,51 +139,56 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonButton, IonContent, IonIcon, IonFooter
 } from '@ionic/vue'
+import { businessAPI } from '@/api'
 
 const router = useRouter()
+const route  = useRoute()
+
+const bizId        = route.params.id as string   // from /business/:id
 const activeFilter = ref('All')
 const vehicleFilters = ['All', 'Cars', 'Vans', 'Motorcycles', 'Trucks']
-
-const business = ref({
-  id: 1,
-  name: 'AutoLux Rentals',
-  emoji: '🚗',
-  color: 'linear-gradient(135deg,#667eea,#764ba2)',
-  rating: '4.8',
-  vehicleCount: 12,
-  totalRentals: 342,
-  location: 'Makati City',
-  responseTime: '~1hr',
-  about: 'AutoLux Rentals offers premium vehicles for all your travel needs. From daily commutes to long road trips, we have the perfect ride for you.',
-  phone: '+63 912 345 6789',
-})
-
-const vehicles = ref([
-  { id: 1, name: 'Toyota Vios', type: 'Cars', emoji: '🚗', price: '850', seats: 5, transmission: 'Auto', available: true },
-  { id: 2, name: 'Honda City', type: 'Cars', emoji: '🚙', price: '900', seats: 5, transmission: 'Auto', available: true },
-  { id: 3, name: 'Mitsubishi L300', type: 'Vans', emoji: '🚐', price: '1500', seats: 12, transmission: 'Manual', available: false },
-  { id: 4, name: 'Toyota Innova', type: 'Vans', emoji: '🚌', price: '1800', seats: 8, transmission: 'Auto', available: true },
-  { id: 5, name: 'Yamaha Mio', type: 'Motorcycles', emoji: '🏍️', price: '400', seats: 2, transmission: 'Auto', available: true },
-  { id: 6, name: 'Isuzu Crosswind', type: 'Trucks', emoji: '🚛', price: '2000', seats: 8, transmission: 'Manual', available: false },
-])
+const isLoading    = ref(false)
+const business     = ref<any>(null)
+const vehicles     = ref<any[]>([])
 
 const filteredVehicles = computed(() =>
-  vehicles.value.filter(v => activeFilter.value === 'All' || v.type === activeFilter.value)
+  vehicles.value.filter(v =>
+    activeFilter.value === 'All' || v.Vehicle_Type === activeFilter.value
+  )
 )
 
-const minPrice = computed(() =>
-  Math.min(...vehicles.value.map(v => parseInt(v.price))).toLocaleString()
-)
+const minPrice = computed(() => {
+  if (!vehicles.value.length) return 0
+  return Math.min(...vehicles.value.map(v => Number(v.Daily_Rate))).toLocaleString()
+})
 
-function goToVehicle(id: number) {
+async function loadBusiness() {
+  isLoading.value = true
+  try {
+    const [bizRes, vehiclesRes] = await Promise.all([
+      businessAPI.getOne(bizId),
+      businessAPI.getVehicles(bizId),
+    ])
+    business.value = bizRes.data.data ?? bizRes.data
+    vehicles.value = vehiclesRes.data.data ?? vehiclesRes.data
+  } catch (err) {
+    console.error('Failed to load business', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+function goToVehicle(id: string) {
   router.push(`/vehicle/${id}`)
 }
+
+onMounted(loadBusiness)
 </script>
 
 <style scoped>

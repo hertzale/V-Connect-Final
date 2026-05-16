@@ -87,10 +87,10 @@
             <label>Vehicle</label>
             <select v-model="filters.vehicle" class="filter-select">
               <option value="">All Vehicles</option>
-              <option value="Tricycle">Tricycle</option>
-              <option value="Motorcycle">Motorcycle</option>
-              <option value="Car">Car</option>
-              <option value="Van">Van</option>
+              <option value="Cars">Cars</option>
+              <option value="Vans">Vans</option>
+              <option value="Motorcycles">Motorcycles</option>
+              <option value="Trucks">Trucks</option>
             </select>
           </div>
           <button @click="clearFilters" class="clear-btn">Clear Filters</button>
@@ -119,18 +119,18 @@
             <!-- Business Header -->
             <div class="business-header">
               <div class="business-avatar">
-                {{ getInitials(owner.Name ?? owner.Business_Name) }}
+                {{ getInitials(owner.Business_Name) }}
               </div>
               <div class="business-info">
-                <p class="biz-name">{{ owner.Name ?? owner.Business_Name }}</p>
+                <p class="biz-name">{{ owner.Business_Name }}</p>
                 <p class="biz-meta">
                   <ion-icon name="location-outline" class="inline-icon"></ion-icon>
-                  {{ owner.Address ?? owner.Business_Address ?? owner.Owner_Address ?? 'Naga City' }}
+                  {{ owner.Business_Address ?? '—' }}
                 </p>
-                <p class="biz-meta" v-if="owner.Contact_Number">
+                <p class="biz-meta" v-if="owner.Business_ContactNo">
                   <ion-icon name="call-outline" class="inline-icon"></ion-icon>
-                  {{ owner.Contact_Number }}
-                </p>
+                  {{ owner.Business_ContactNo }}
+                  </p>
               </div>
               <div class="vehicle-count-badge">
                 <p class="count-number">{{ owner.vehicles?.length ?? owner.Vehicle_Count ?? '—' }}</p>
@@ -225,7 +225,7 @@ import {
   settingsOutline, logOutOutline, businessOutline, locationOutline,
   chevronForwardOutline, storefrontOutline, callOutline
 } from 'ionicons/icons'
-import axios from 'axios'
+import { businessAPI } from '@/api'
 
 addIcons({
   'search-outline': searchOutline,
@@ -278,14 +278,14 @@ const clearFilters = () => {
   selectedCategory.value = 'All'
 }
 
-const categories = ['All', 'Tricycle', 'Motorcycle', 'Car', 'Van']
+const categories = ['All', 'Cars', 'Vans', 'Motorcycles', 'Trucks']
 
 const loadUser = () => {
   const savedUser = localStorage.getItem('user')
   if (savedUser) {
     const user = JSON.parse(savedUser)
-    userName.value = user.name || 'Guest'
-    const names = user.name.split(' ')
+    userName.value = user.Person_Name || 'Guest'
+    const names = user.Person_Name.split(' ')
     userInitials.value = names.map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
   }
 }
@@ -306,12 +306,8 @@ const closeMenu = (e: Event) => {
 const loadBusinesses = async () => {
   isLoading.value = true
   try {
-    const token = localStorage.getItem('token')
-    const response = await axios.get(
-      'http://localhost:3000/api/persons/owners',
-      { headers: { Authorization: `Bearer ${token}` } }
-    )
-    owners.value = response.data.data
+    const response = await businessAPI.getAll()
+    owners.value = response.data.data ?? response.data
   } catch (err) {
     console.error('Failed to load businesses', err)
   } finally {
@@ -324,11 +320,10 @@ const filteredOwners = computed(() => {
     .filter((owner: any) => {
       const matchLocation =
         locationQuery.value === '' ||
-        owner.Address?.toLowerCase().includes(locationQuery.value.toLowerCase()) ||
         owner.Business_Address?.toLowerCase().includes(locationQuery.value.toLowerCase())
 
       const ownerNameMatch =
-        (owner.Name ?? owner.Business_Name)
+      owner.Business_Name
           ?.toLowerCase()
           .includes(searchQuery.value.toLowerCase())
 
@@ -355,7 +350,7 @@ const filteredOwners = computed(() => {
 
       const matchBusiness =
         filters.value.business === '' ||
-        (owner.Name ?? owner.Business_Name)
+        owner.Business_Name
           ?.toLowerCase()
           .includes(filters.value.business.toLowerCase())
 
@@ -370,9 +365,7 @@ const filteredOwners = computed(() => {
         const matchSearch =
           searchQuery.value === '' ||
           v.Vehicle_Model?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-          (owner.Name ?? owner.Business_Name)
-            ?.toLowerCase()
-            .includes(searchQuery.value.toLowerCase())
+          owner.Business_Name?.toLowerCase().includes(searchQuery.value.toLowerCase())
         const matchVehicleFilter =
           filters.value.vehicle === '' ||
           v.Vehicle_Type === filters.value.vehicle

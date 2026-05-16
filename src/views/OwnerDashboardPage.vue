@@ -14,7 +14,24 @@
               <p class="header-sub">Business Dashboard</p>
               <h1 class="header-name">{{ userName }} 🏢</h1>
             </div>
-            <div class="avatar" @click="goTo('/business-profile')">{{ userInitials }}</div>
+            <div class="avatar-wrapper">
+              <div class="avatar" @click="toggleMenu">{{ userInitials }}</div>
+              <div class="dropdown-menu" v-if="showMenu">
+                <div class="dropdown-item" @click="goToProfile">
+                  <ion-icon name="person-outline"></ion-icon>
+                  <span>Business Profile</span>
+                </div>
+                <div class="dropdown-item" @click="goToSettings">
+                  <ion-icon name="settings-outline"></ion-icon>
+                  <span>Settings</span>
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item logout" @click="logout">
+                  <ion-icon name="log-out-outline"></ion-icon>
+                  <span>Logout</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Stats -->
@@ -79,14 +96,14 @@
                 <p class="req-time">{{ formatDate(req.Transaction_Date) }}</p>
               </div>
               <div class="req-dates">
-                📅 {{ formatDate(req.Start_Date_and_Time) }} → {{ formatDate(req.End_Date_and_Time) }}
+                📅 {{ formatDate(req.Start_Date) }} → {{ formatDate(req.End_Date) }}
                 · {{ req.Rental_Duration }} day(s)
               </div>
               <div class="req-actions">
                 <button class="btn-decline" @click="updateStatus(req, 'Cancelled')" :disabled="loadingId === req.Transaction_ID">
                   Decline
                 </button>
-                <button class="btn-confirm" @click="updateStatus(req, 'Confirmed')" :disabled="loadingId === req.Transaction_ID">
+                <button class="btn-confirm" @click="updateStatus(req, 'Reserved')" :disabled="loadingId === req.Transaction_ID">
                   ✓ Confirm
                 </button>
               </div>
@@ -130,10 +147,10 @@
             >
               <div class="tx-info">
                 <p class="tx-vehicle">{{ tx.Vehicle_Model }}</p>
-                <p class="tx-customer">{{ tx.Customer_Name }} · {{ formatDate(tx.Start_Date_and_Time) }}</p>
+                <p class="tx-customer">{{ tx.Customer_Name }} · {{ formatDate(tx.Start_Date) }}</p>
               </div>
               <div class="tx-right">
-                <p class="tx-amount">₱{{ (tx.Daily_Rate * tx.Rental_Duration).toLocaleString() }}</p>
+                <p class="tx-amount">₱{{ Number(tx.Total_Amount).toLocaleString() }}</p>
                 <span :class="['tx-status', getStatusClass(tx.Rental_Status)]">{{ tx.Rental_Status }}</span>
               </div>
             </div>
@@ -176,12 +193,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { IonPage, IonContent, IonIcon, useIonRouter, onIonViewWillEnter } from '@ionic/vue'
 import { addIcons } from 'ionicons'
 import {
   gridOutline, receiptOutline, addOutline,
-  listOutline, barChartOutline, carOutline
+  listOutline, barChartOutline, carOutline,
+  personOutline, settingsOutline, logOutOutline 
 } from 'ionicons/icons'
 import { transactionAPI, vehicleAPI } from '@/api'
 
@@ -192,6 +210,9 @@ addIcons({
   'list-outline': listOutline,
   'bar-chart-outline': barChartOutline,
   'car-outline': carOutline,
+  'person-outline': personOutline,
+  'settings-outline': settingsOutline,
+  'log-out-outline': logOutOutline
 })
 
 const router = useIonRouter()
@@ -200,13 +221,19 @@ const userInitials = ref('OW')
 const transactions = ref<any[]>([])
 const myVehicles   = ref<any[]>([])
 const loadingId    = ref('')
+const showMenu       = ref(false)
+
+const toggleMenu = () => { showMenu.value = !showMenu.value }
+const goToProfile = () => { router.push('/business-profile')}
+const goToSettings = () => { router.push('/settings') }
+
 
 const loadUser = () => {
   const u = localStorage.getItem('user')
   if (u) {
     const user = JSON.parse(u)
-    userName.value     = user.name || 'Owner'
-    const names        = user.name?.split(' ') || ['O']
+    userName.value     = user.Person_Name || 'Owner'
+    const names        = user.Person_Name?.split(' ') || ['O']
     userInitials.value = names.map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
   }
 }
@@ -235,7 +262,7 @@ const loadData = async () => {
   }
 }
 
-const updateStatus = async (tx: any, status: 'Confirmed' | 'Ongoing' | 'Completed' | 'Cancelled') => {
+const updateStatus = async (tx: any, status: 'Reserved' | 'Ongoing' | 'Completed' | 'Cancelled') => {
   loadingId.value = tx.Transaction_ID
   try {
     await transactionAPI.updateStatus(tx.Transaction_ID, status)
@@ -261,7 +288,7 @@ const getStatusClass = (status: string) => {
     Rented: 'status-rented',
     'Under Maintenance': 'status-maintenance',
     Pending: 'status-pending',
-    Confirmed: 'status-confirmed',
+    Reserved: 'status-confirmed',
     Ongoing: 'status-ongoing',
     Completed: 'status-done',
     Cancelled: 'status-cancelled',
@@ -270,15 +297,29 @@ const getStatusClass = (status: string) => {
 }
 
 const logout = () => {
+  showMenu.value = false
   localStorage.removeItem('token')
   localStorage.removeItem('user')
   router.push('/login')
 }
 
+const closeMenu = (e: Event) => {
+  if (!(e.target as HTMLElement).closest('.avatar-wrapper')) {
+    showMenu.value = false
+  }
+}
+
 const goTo = (path: string) => router.push(path)
 
 onIonViewWillEnter(() => { loadUser(); loadData() })
-onMounted(() => { loadUser(); loadData() })
+onMounted(() => { 
+  loadUser(); 
+  loadData() 
+  document.addEventListener('click', closeMenu)
+  })
+onUnmounted(() => {
+  document.removeEventListener('click', closeMenu)
+})
 </script>
 
 <style scoped>
@@ -331,20 +372,33 @@ onMounted(() => { loadUser(); loadData() })
   color: #ffffff;
   margin: 0;
 }
+/* Avatar & Dropdown */
+.avatar-wrapper { position: relative; z-index: 999; }
 .avatar {
   width: 44px; height: 44px;
-  background: #b70b67;
   border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  font-weight: 800;
-  color: #ffffff;
-  cursor: pointer;
+  background: #b70b67; color: #ffffff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 800; cursor: pointer;
   font-family: 'Gil Sans MT', sans-serif;
 }
-
+.dropdown-menu {
+  position: absolute; top: 54px; right: 0;
+  background: #ffffff; border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  min-width: 180px; overflow: hidden; z-index: 200;
+}
+.dropdown-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; cursor: pointer;
+  font-size: 14px; color: #1a1a2e; transition: background 0.2s;
+  font-family: 'Gil Sans MT', sans-serif;
+}
+.dropdown-item:hover { background: #f4f6f9; }
+.dropdown-item ion-icon { font-size: 18px; color: #1a3a5c; }
+.dropdown-divider { height: 0.5px; background: #e0e0e0; margin: 4px 0; }
+.dropdown-item.logout { color: #a83434; }
+.dropdown-item.logout ion-icon { color: #a83434; }
 /* Stats */
 .stats-row {
   display: grid;
