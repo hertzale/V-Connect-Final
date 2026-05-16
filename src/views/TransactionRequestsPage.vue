@@ -117,7 +117,7 @@
 
     <!-- Tab Bar -->
     <div class="tab-bar">
-      <div class="tab-item" @click="goTo('/dashboard')">
+      <div class="tab-item" @click="goTo('/owner-dashboard')">
         <ion-icon name="grid-outline"></ion-icon>
         <span>Dashboard</span>
       </div>
@@ -255,7 +255,7 @@ const updateStatus = async (tx: any, status: 'Confirmed' | 'Ongoing' | 'Complete
   }
 }
 
-const goBack = () => router.push('/dashboard')
+const goBack = () => router.push('/owner-dashboard')
 const goTo = (path: string) => router.push(path)
 
 onIonViewWillEnter(loadTransactions)

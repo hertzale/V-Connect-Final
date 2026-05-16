@@ -67,7 +67,6 @@ const routes: Array<RouteRecordRaw> = [
     path: "/transactions",
     name: "Transactions",
     component: () => import("../views/TransactionPage.vue"),
-    beforeEnter: requireAuth
   },
   {
     path: "/profile",
@@ -79,7 +78,6 @@ const routes: Array<RouteRecordRaw> = [
     path: "/notifications",
     name: "Notifications",
     component: () => import("../views/NotificationsPage.vue"),
-    beforeEnter: requireAuth
   },
   {
     path: "/chat",
@@ -92,43 +90,36 @@ const routes: Array<RouteRecordRaw> = [
     path: "/post",
     name: "Post",
     component: () => import("../views/PostPage.vue"),
-    beforeEnter: requireOwner
   },
   {
     path: "/edit-vehicle/:id",
     name: "EditVehicle",
     component: () => import("../views/EditPage.vue"),
-    beforeEnter: requireOwner
   },
   {
     path: "/listings",
     name: "Listings",
     component: () => import("../views/ListingsPage.vue"),
-    beforeEnter: requireOwner
   },
   {
     path: "/transaction-requests",
     name: "TransactionRequests",
     component: () => import("../views/TransactionRequestsPage.vue"),
-    beforeEnter: requireOwner
   },
   {
     path: "/booking-history",
     name: "BookingHistory",
     component: () => import("../views/BookingHistoryPage.vue"),
-    beforeEnter: requireOwner
   },
   {
     path: "/business-profile",
     name: "BusinessProfile",
     component: () => import("../views/BusinessProfilePage.vue"),
-    beforeEnter: requireOwner
   },
   {
     path: "/owner-dashboard",
     name: "OwnerDashboard",
     component: () => import("../views/OwnerDashboardPage.vue"),
-    beforeEnter: requireOwner
   },
 ];
 

@@ -85,10 +85,35 @@
 
     <!-- TAB BAR -->
     <div class="tab-bar">
-      <div class="tab-item" @click="goTo('/home')">
-        <ion-icon name="grid-outline"></ion-icon>
-        <span>Home</span>
+            <!--Customer Tabs-->
+      <template v-if="userRole === 'Customer'">
+        <div class="tab-item" @click="goTo('/home')">
+          <ion-icon name="grid-outline"></ion-icon>
+          <span>Home</span>
+        </div>
+        <div class="tab-item active" @click="goTo('/chat')">
+        <div class="notif-tab-wrap">
+          <ion-icon name="chatbubble-outline"></ion-icon>
+          <div class="tab-badge" v-if="totalUnread > 0">{{ totalUnread }}</div>
+        </div>
+        <span>Chat</span>
       </div>
+        <div class="tab-item" @click="goTo('/transactions')">
+          <ion-icon name="list-outline"></ion-icon>
+          <span>Transactions</span>
+        </div>
+        <div class="tab-item" @click="goTo('/notifications')">
+          <ion-icon name="notifications-outline"></ion-icon>
+          <span>Alerts</span>
+        </div>
+      </template>
+
+      <template v-else>
+        <!-- Business Owner Tabs -->
+        <div class="tab-item" @click="goTo('/owner-dashboard')">
+          <ion-icon name="grid-outline"></ion-icon>
+          <span>Dashboard</span>
+        </div>
       <div class="tab-item active" @click="goTo('/chat')">
         <div class="notif-tab-wrap">
           <ion-icon name="chatbubble-outline"></ion-icon>
@@ -96,20 +121,23 @@
         </div>
         <span>Chat</span>
       </div>
-      <div class="tab-item" @click="goTo('/post')">
-        <div class="plus-btn">
-          <ion-icon name="add-outline"></ion-icon>
+        <div class="tab-item" @click="goTo('/post')">
+      <div class="plus-btn">
+        <ion-icon name="add-outline"></ion-icon>
+      </div>
+      <span>Post</span>
+      </div>
+
+        <div class="tab-item" @click="goTo('/listings')">
+          <ion-icon name="list-outline"></ion-icon>
+          <span>Listing</span>
         </div>
-        <span>Post</span>
-      </div>
-      <div class="tab-item" @click="goTo('/listings')">
-        <ion-icon name="list-outline"></ion-icon>
-        <span>Listing</span>
-      </div>
-      <div class="tab-item" @click="goTo('/notifications')">
-        <ion-icon name="notifications-outline"></ion-icon>
-        <span>Alerts</span>
-      </div>
+
+        <div class="tab-item" @click="goTo('/notifications')">
+          <ion-icon name="notifications-outline"></ion-icon>
+          <span>Alerts</span>
+        </div>
+      </template>
     </div>
   </ion-page>
 </template>
@@ -137,6 +165,7 @@ const router = useIonRouter()
 const searchQuery = ref('')
 const isLoading = ref(false)
 const chats = ref<any[]>([])
+const userRole = ref(localStorage.getItem('user_role') || 'Customer')
 
 const filteredChats = computed(() =>
   chats.value.filter(c =>
@@ -162,6 +191,21 @@ async function loadChats() {
   }
 }
 
+function loadUserRole() {
+  const savedUser = localStorage.getItem('user')
+
+  if (savedUser) {
+    const user = JSON.parse(savedUser)
+
+    // adjust this depending on your backend field
+    userRole.value =
+      user.Role ||
+      user.Account_Role ||
+      user.User_Role ||
+      ''
+  }
+}
+
 function openChat(chat: any) {
   router.push({ 
     path: `/negotiate/${chat.Inquiry_ID}`,
@@ -179,8 +223,16 @@ function openChat(chat: any) {
 
 const goTo = (path: string) => router.push(path)
 
-onIonViewWillEnter(loadChats)
-onMounted(loadChats)
+onIonViewWillEnter(() => {
+  loadUserRole()
+  loadChats()
+})
+
+onMounted(() => {
+  loadUserRole()
+  loadChats()
+})
+
 </script>
 
 <style scoped>
