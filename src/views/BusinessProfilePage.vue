@@ -182,21 +182,12 @@ import {
 const editMode = ref(false)
 
 const biz = ref({
-  name: 'AutoLux Rentals',
-  description: 'Premium vehicle rental service offering reliable cars, vans, and motorcycles for all your travel needs. Serving Metro Manila and nearby areas.',
-  address: '123 Ayala Ave, Makati City, Metro Manila',
-  phone: '+63 912 345 6789',
-  email: 'autolux@email.com',
-  hours: 'Mon–Sun, 6:00 AM – 10:00 PM',
-  location: 'Makati City',
-  rating: '4.8',
-  vehicleCount: 12,
-  totalRentals: 342,
-  responseTime: '~1hr',
-  memberSince: '2023',
-  vehicleTypes: ['🚗 Cars', '🚐 Vans', '🏍️ Motorcycles'],
-  ownerLicense: 'N01-23-456789',
-  licenseExp: 'Dec 2027',
+  Business_Name:    '',
+  Description:      '',
+  Business_Address: '',
+  Contact_Number:   '',
+  Email:            '',
+  Service_Area:     '',
 })
 
 function saveProfile() {

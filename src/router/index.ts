@@ -144,10 +144,10 @@ router.beforeEach((to, from, next) => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   const role = user.role
 
-  if (to.path === '/dashboard' && role !== 'Business_Owner') {
+  if (to.path === '/owner-dashboard' && role !== 'Business_Owner') {
     next('/home')
   } else if (to.path === '/home' && role === 'Business_Owner') {
-    next('/dashboard')
+    next('/owner-dashboard')
   } else {
     next()
   }
