@@ -174,6 +174,10 @@
         </div>
         <span>Requests</span>
       </div>
+        <div class="tab-item" @click="goTo('/negotiate-list')">
+          <ion-icon name="chatbubbles-outline"></ion-icon>
+          <span>Negotiate</span>
+        </div>
       <div class="tab-item" @click="goTo('/post')">
         <div class="plus-btn">
           <ion-icon name="add-outline"></ion-icon>

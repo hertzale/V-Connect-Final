@@ -258,17 +258,17 @@ const updateStatus = async (tx: any, status: 'Reserved' | 'Ongoing' | 'Completed
     // When completing — create payment and receipt
     if (status === 'Completed') {
       const payRes = await paymentAPI.create({
-        transaction_id:  tx.Transaction_ID,
-        total_amount:    Number(tx.Total_Amount),
-        payment_method:  'Cash',
-        payment_date:    new Date().toISOString().split('T')[0],
-        payment_status:  'Paid',
+        transaction_id: tx.Transaction_ID,
+        total_amount: Number(tx.Total_Amount),
+        payment_method: 'Cash',
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_status: 'Paid',
       })
       const paymentId = payRes.data.data.Payment_ID
 
       const recRes = await receiptAPI.create({
-        payment_id:   paymentId,
-        amount_paid:  Number(tx.Total_Amount),
+        payment_id: paymentId,
+        amount_paid: Number(tx.Total_Amount),
         receipt_date: new Date().toISOString().split('T')[0],
         payment_type: 'Full',
       })
@@ -288,14 +288,14 @@ function goToReceipt(tx: any) {
   router.push({
     path: '/receipt',
     query: {
-      receiptId:       tx._receiptId || '',
-      transactionId:   tx.Transaction_ID,
-      vehicleName:     tx.Vehicle_Model,
-      days:            tx.Rental_Duration,
-      startDate:       tx.Start_Date,
-      endDate:         tx.End_Date,
-      pickupLocation:  tx.Pickup_Location,
-      amount:          tx.Total_Amount,
+      receiptId: tx._receiptId || '',
+      transactionId: tx.Transaction_ID,
+      vehicleName: tx.Vehicle_Model,
+      days: tx.Rental_Duration,
+      startDate: tx.Start_Date,
+      endDate: tx.End_Date,
+      pickupLocation: tx.Pickup_Location,
+      amount: tx.Total_Amount,
     }
   })
 }
@@ -370,8 +370,14 @@ onMounted(loadTransactions)
   gap: 6px;
 }
 
-.border-reserved { border-left-color: #fc89d0; }
-.chip-reserved   { background: rgba(252,137,208,0.2); color: #fc89d0; }
+.border-reserved {
+  border-left-color: #fc89d0;
+}
+
+.chip-reserved {
+  background: rgba(252, 137, 208, 0.2);
+  color: #fc89d0;
+}
 
 .post-header {
   display: flex;

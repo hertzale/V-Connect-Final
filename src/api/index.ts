@@ -30,15 +30,9 @@ export const authAPI = {
 
 // ── Vehicles ──────────────────────────────────────────────
 export const vehicleAPI = {
-  getAll: (type?: string) =>
-    api.get('/api/vehicles', { params: { type } }),
-
-  getMy: () =>
-    api.get('/api/vehicles/my'),
-
-  getOne: (id: string) =>
-    api.get(`/api/vehicles/${id}`),
-
+  getAll:       (type?: string) => api.get('/api/vehicles', { params: { type } }),
+  getMy:        ()              => api.get('/api/vehicles/my'),
+  getOne:       (id: string)    => api.get(`/api/vehicles/${id}`),
   post: (data: {
     vehicle_model:     string
     vehicle_type:      string
@@ -71,8 +65,8 @@ export const vehicleAPI = {
 
 // ── Transactions ──────────────────────────────────────────
 export const transactionAPI = {
-  getAll: () =>
-    api.get('/api/transactions'),
+  getAll: (params?: { role?: string; from?: string; to?: string; status?: string }) =>
+  api.get('/api/transactions', { params }),
 
   getOne: (id: string) =>
     api.get(`/api/transactions/${id}`),
@@ -92,10 +86,10 @@ export const transactionAPI = {
     drivers_license?: string    // required if with_driver = 1
   }) => api.post('/api/transactions', data),
 
-  // Valid statuses per DB CHECK constraint:
-  // 'Pending' | 'Reserved' | 'Ongoing' | 'Completed' | 'Cancelled' | 'Overdue'
+  // ⚠️ correct endpoint is PATCH /:id/status NOT /:id/respond
   updateStatus: (
     id: string,
+
     status: 'Pending' | 'Reserved' | 'Cancelled' | 'Ongoing' | 'Completed' | 'Overdue'
   ) => api.patch(`/api/transactions/${id}/status`, { status }),
 }
@@ -109,7 +103,8 @@ export const personAPI = {
     person_name: string         // fixed: was 'name', DB column is Person_Name
     address: string
     contact_number: string
-    drivers_license?: string
+    drivers_license?: string | null
+    email?: string | null
   }) => api.put('/api/persons/me', data),
 
   getOne: (id: string) =>
@@ -118,8 +113,11 @@ export const personAPI = {
 
 // ── Business ──────────────────────────────────────────────
 export const businessAPI = {
-  getAll: () =>
-    api.get('/api/businesses'),
+  getAll: (params?: { lat?: number; lng?: number; radius_km?: number; type?: string }) =>
+    api.get('/api/businesses', { params }),
+
+  getMine: () =>
+    api.get('/api/businesses/mine'),
 
   getOne: (id: string) =>
     api.get(`/api/businesses/${id}`),
@@ -130,24 +128,32 @@ export const businessAPI = {
   create: (data: {
     business_name: string
     business_address: string
-    business_email?: string
-    business_contact_no?: string
     description?: string
+    business_contactno?: string
+    business_email?: string
+    operating_hours?: string
     service_area?: string
+    latitude?: number
+    longitude?: number
+    owner_type?: 'owner' | 'owner-driver' | 'driver'
   }) => api.post('/api/businesses', data),
 
   update: (id: string, data: {
     business_name?: string
     business_address?: string
-    business_email?: string
-    business_contact_no?: string
     description?: string
+    business_contactno?: string
+    business_email?: string
+    operating_hours?: string
     service_area?: string
+    latitude?: number
+    longitude?: number
   }) => api.put(`/api/businesses/${id}`, data),
+
+  deactivate: (id: string) =>
+    api.patch(`/api/businesses/${id}/deactivate`),
 }
 
-// ── Inquiries ─────────────────────────────────────────────
-// Previously missing — INQUIRY table exists in DB
 export const inquiryAPI = {
   getAll: () =>
     api.get('/api/inquiries'),
@@ -155,22 +161,55 @@ export const inquiryAPI = {
   getOne: (id: string) =>
     api.get(`/api/inquiries/${id}`),
 
+  // Customer sends inquiry — POST /api/inquiries
   create: (data: {
-    vehicle_id: string
-    owner_account_id: string
-    offered_price: number
-    start_date: string          // format: "YYYY-MM-DD"
-    end_date: string            // format: "YYYY-MM-DD"
-    message?: string
+    vehicle_id:          string
+    owner_account_id:    string
+    customer_account_id?: string   // ← added
+    offered_price:       number
+    start_date:          string
+    end_date:            string
+    message?:            string
+    sender_type?:        string    // ← added
   }) => api.post('/api/inquiries', data),
 
-  // Valid statuses per DB CHECK constraint:
-  // 'Pending' | 'Accepted' | 'Rejected' | 'Completed'
-  respond: (
+
+  // Owner quotes — PATCH /api/inquiries/:id/quote
+  quote: (id: string, data: {
+    response_type: 'range' | 'fixed'
+    price_min?: number
+    price_max?: number
+    set_price?: number
+    owner_message?: string
+  }) => api.patch(`/api/inquiries/${id}/quote`, data),
+
+  // Customer responds to owner quote — PATCH /api/inquiries/:id/respond
+    respond: (
+      id: string,
+      body: {
+        decision: 'accept' | 'decline' | 'negotiate'
+        counter_price?: number
+        customer_counter_message?: string
+      }
+    ) => api.patch(`/api/inquiries/${id}/respond`, body),
+
+  // Owner finalizes negotiation — PATCH /api/inquiries/:id/finalize
+  finalize: (id: string, decision: 'accept' | 'decline') =>
+    api.patch(`/api/inquiries/${id}/finalize`, { decision }),
+
+  // Customer books from confirmed inquiry — POST /api/inquiries/:id/book
+  book: (id: string) =>
+    api.post(`/api/inquiries/${id}/book`),
+
+  // Cancel inquiry — PATCH /api/inquiries/:id/cancel
+  cancel: (id: string) =>
+    api.patch(`/api/inquiries/${id}/cancel`),
+
+  counter: (
     id: string,
-    status: 'Accepted' | 'Rejected' | 'Completed',
-    agreed_price?: number
-  ) => api.patch(`/api/inquiries/${id}/respond`, { status, agreed_price }),
+    counter_price: number,
+    message?: string
+  ) => api.patch(`/api/inquiries/${id}/counter`, { counter_price, message }),
 }
 // ── Vehicle Photos ───────────────────────────────────────
 export const vehiclePhotoAPI = {

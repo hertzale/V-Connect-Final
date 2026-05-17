@@ -266,7 +266,7 @@ import { useRoute } from 'vue-router'
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonButton, IonContent, IonFooter, IonIcon, IonTextarea,
-  IonModal, IonToast, useIonRouter, onIonViewWillEnter
+  IonModal, IonToast, onIonViewWillEnter, onIonViewWillLeave
 } from '@ionic/vue'
 import { addIcons } from 'ionicons'
 import {
@@ -301,28 +301,31 @@ interface ChatMessage {
 }
 
 // ─── Route params ──────────────────────────────────────────
-const route  = useRoute()
-const router = useIonRouter()
+const route = useRoute()
 
-const inquiryId      = ref(route.params.id as string || route.query.inquiryId as string || '')
-const vehicleName    = ref(route.query.vehicleName   as string || 'Vehicle')
-const customerName   = ref(route.query.customerName  as string || 'Customer')
-const listedPrice    = ref(Number(route.query.dailyRate) || 0)
-const customerOffer  = ref<number | null>(null)
-const agreedPrice    = ref<number | null>(null)
+// ✅ Fix 3 — consistent param reading, prefer route.params.id
+const inquiryId = ref(
+  (route.params.id as string) || (route.query.inquiryId as string) || ''
+)
+const vehicleName  = ref(route.query.vehicleName  as string || 'Vehicle')
+const customerName = ref(route.query.customerName as string || 'Customer')
+const listedPrice  = ref(Number(route.query.dailyRate) || 0)
+const customerOffer = ref<number | null>(null)
+const agreedPrice   = ref<number | null>(null)
 
 // ─── State ─────────────────────────────────────────────────
-const inquiry          = ref<any>(null)
-const isLoading        = ref(false)
-const isActing         = ref(false)
+const inquiry        = ref<any>(null)
+const isLoading      = ref(false)
+const isActing       = ref(false)
 const isSendingCounter = ref(false)
 const showCounterModal = ref(false)
-const inputText        = ref('')
-const counterAmount    = ref<number | ''>('')
-const counterMessage   = ref('')
-const chatContent      = ref<any>(null)
-const messages         = ref<ChatMessage[]>([])
+const inputText      = ref('')
+const counterAmount  = ref<number | ''>('')
+const counterMessage = ref('')
+const chatContent    = ref<any>(null)
+const messages       = ref<ChatMessage[]>([])
 let msgId = 100
+let pollInterval: any = null
 
 // ─── Toast ─────────────────────────────────────────────────
 const toast = ref({ show: false, message: '', color: 'success' })
@@ -344,7 +347,9 @@ function getNow() {
 
 function formatDate(dt: string) {
   if (!dt) return '—'
-  return new Date(dt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+  return new Date(dt).toLocaleDateString('en-PH', {
+    month: 'short', day: 'numeric', year: 'numeric'
+  })
 }
 
 function formatTime(dt: string) {
@@ -354,7 +359,9 @@ function formatTime(dt: string) {
 
 function calcDays(start: string, end: string) {
   if (!start || !end) return 0
-  return Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / 86400000)
+  return Math.ceil(
+    (new Date(end).getTime() - new Date(start).getTime()) / 86400000
+  )
 }
 
 async function scrollBottom() {
@@ -371,8 +378,8 @@ async function loadInquiry() {
     inquiry.value = res.data.data ?? res.data
 
     customerOffer.value = Number(inquiry.value.Offered_Price) || null
-    vehicleName.value   = inquiry.value.Vehicle_Model   || vehicleName.value
-    customerName.value  = inquiry.value.Customer_Name   || customerName.value
+    vehicleName.value   = inquiry.value.Vehicle_Model  || vehicleName.value
+    customerName.value  = inquiry.value.Customer_Name  || customerName.value
     listedPrice.value   = Number(inquiry.value.Daily_Rate) || listedPrice.value
 
     if (inquiry.value.Inquiry_Status === 'Accepted') {
@@ -393,18 +400,22 @@ async function acceptOffer() {
   if (!inquiry.value) return
   isActing.value = true
   try {
-    await inquiryAPI.respond(inquiryId.value, 'Accepted', Number(inquiry.value.Offered_Price))
+    await inquiryAPI.respond(
+      inquiryId.value, {
+        decision: 'accept',
+        counter_price: Number(inquiry.value.Offered_Price)
+      }
+    )
 
     inquiry.value.Inquiry_Status = 'Accepted'
     agreedPrice.value = Number(inquiry.value.Offered_Price)
 
-    // Notify customer
     await notificationAPI.create({
-      Notification_Type: 'Inquiry',
-      Message:           `Your offer of ₱${inquiry.value.Offered_Price}/day has been accepted!`,
-      Reference_ID:      inquiryId.value,
-      Reference_Type:    'Inquiry',
-      Is_Read:           false
+      notification_type: 'Inquiry',
+      message: `Your offer of ₱${inquiry.value.Offered_Price}/day has been accepted!`,
+      reference_id: inquiryId.value,
+      reference_type: 'Inquiry',
+      is_read: false
     }).catch(() => console.warn('Notification failed'))
 
     messages.value.push({
@@ -427,17 +438,16 @@ async function declineOffer() {
   if (!inquiry.value) return
   isActing.value = true
   try {
-    await inquiryAPI.respond(inquiryId.value, 'Rejected')
+    await inquiryAPI.respond(inquiryId.value, {decision: 'decline'})
 
     inquiry.value.Inquiry_Status = 'Rejected'
 
-    // Notify customer
     await notificationAPI.create({
-      Notification_Type: 'Inquiry',
-      Message:           `Your offer of ₱${inquiry.value.Offered_Price}/day has been declined.`,
-      Reference_ID:      inquiryId.value,
-      Reference_Type:    'Inquiry',
-      Is_Read:           false
+      notification_type: 'Inquiry',
+      message: `Your offer of ₱${inquiry.value.Offered_Price}/day has been declined.`,
+      reference_id: inquiryId.value,
+      reference_type: 'Inquiry',
+      is_read: false
     }).catch(() => console.warn('Notification failed'))
 
     messages.value.push({
@@ -465,19 +475,11 @@ async function sendCounter() {
 
   isSendingCounter.value = true
   try {
-    // Create a new inquiry as owner's counteroffer
-    const res = await inquiryAPI.create({
-      vehicle_id:          inquiry.value.Vehicle_ID,
-      owner_account_id:    inquiry.value.Owner_Account_ID,
-      customer_account_id: inquiry.value.Customer_Account_ID,
-      offered_price:       Number(counterAmount.value),
-      start_date:          inquiry.value.Start_Date,
-      end_date:            inquiry.value.End_Date,
-      message:             counterMessage.value || undefined,
-      sender_type:         'Owner',
-    })
-
-    const newInquiryId = res.data.data.Inquiry_ID
+    await inquiryAPI.counter(
+      inquiryId.value,
+      Number(counterAmount.value),
+      counterMessage.value || undefined
+    )
 
     const days = calcDays(inquiry.value.Start_Date, inquiry.value.End_Date)
 
@@ -486,24 +488,23 @@ async function sendCounter() {
       sender: 'me',
       type: 'counter',
       offeredPrice: Number(counterAmount.value),
-      offerDays:    days,
-      startDate:    inquiry.value.Start_Date,
-      endDate:      inquiry.value.End_Date,
-      status:       'Pending',
-      time:         getNow()
+      offerDays: days,
+      startDate: inquiry.value.Start_Date,
+      endDate: inquiry.value.End_Date,
+      status: 'Pending',
+      time: getNow()
     })
 
-    // Notify customer
     await notificationAPI.create({
-      Notification_Type: 'Inquiry',
-      Message:           `Owner sent a counteroffer of ₱${counterAmount.value}/day.`,
-      Reference_ID:      newInquiryId,
-      Reference_Type:    'Inquiry',
-      Is_Read:           false
+      notification_type: 'Inquiry',
+      message: `Owner sent a counteroffer of ₱${counterAmount.value}/day.`,
+      reference_id: inquiryId.value,
+      reference_type: 'Inquiry',
+      is_read: false
     }).catch(() => console.warn('Notification failed'))
 
-    counterAmount.value    = ''
-    counterMessage.value   = ''
+    counterAmount.value  = ''
+    counterMessage.value = ''
     showCounterModal.value = false
     scrollBottom()
     showToast('Counteroffer sent!')
@@ -527,7 +528,16 @@ function sendMessage() {
   inputText.value = ''
 }
 
-onIonViewWillEnter(loadInquiry)
+// ✅ Fix 2 — polling every 5s, cleared on leave
+onIonViewWillEnter(() => {
+  loadInquiry()
+  pollInterval = setInterval(loadInquiry, 5000)
+})
+
+onIonViewWillLeave(() => {
+  if (pollInterval) clearInterval(pollInterval)
+})
+
 onMounted(loadInquiry)
 </script>
 

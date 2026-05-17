@@ -3,7 +3,7 @@
     <ion-header class="ion-no-border">
       <ion-toolbar class="detail-toolbar">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/businesses" text="" class="back-btn"></ion-back-button>
+          <ion-back-button default-href="/home" text="" class="back-btn"></ion-back-button>
         </ion-buttons>
         <ion-title class="toolbar-title">Vehicle Details</ion-title>
         <ion-buttons slot="end">
@@ -22,7 +22,13 @@
       <div v-else-if="vehicle">
       <!-- Image / Emoji -->
       <div class="vehicle-hero">
-        <div class="vehicle-emoji">{{ vehicle.emoji }}</div>
+         <img
+          v-if="primaryPhoto"
+          :src="primaryPhoto.Photo_URL"
+          class="vehicle-photo"
+          alt="Vehicle photo"
+        />
+        <div v-else class="vehicle-emoji">🚗</div>
         <div class="avail-badge" :class="vehicle.Vehicle_Status === 'Available' ? 'avail' : 'unavail'">
           <ion-icon :name="vehicle.Vehicle_Status === 'Available' ? 'checkmark-circle' : 'close-circle'"></ion-icon>
           {{ vehicle.Vehicle_Status === 'Available' ? 'Available Now' : 'Currently Booked' }}
@@ -207,10 +213,11 @@ import {
   IonTitle, IonButton, IonContent, IonIcon, IonFooter
 } from '@ionic/vue'
 import { useRoute } from 'vue-router'
-import { vehicleAPI } from '@/api'
+import { vehicleAPI, vehiclePhotoAPI } from '@/api'
 
 const router = useIonRouter()
 const route = useRoute()
+const vehicleId = route.params.id as string
 
 // Check if user has license
 const hasLicense = computed(() => {
@@ -221,6 +228,11 @@ const hasLicense = computed(() => {
   }
   return false
 })
+
+const photos = ref<any[]>([])
+const primaryPhoto = computed(() =>
+  photos.value.find(p => p.Is_Primary === 1) ?? photos.value[0] ?? null
+)
 
 // Driver option selection
 const selectedDriver = ref('')
@@ -247,11 +259,27 @@ const isLoading = ref(true)
 
 async function loadVehicle() {
   isLoading.value = true
+   try {
+     const [vRes, photoRes] = await Promise.all([
+       vehicleAPI.getOne(vehicleId),
+       vehiclePhotoAPI.getByVehicle(vehicleId)
+     ])
+     vehicle.value = vRes.data.data ?? vRes.data
+     photos.value  = photoRes.data.data ?? photoRes.data
+   } catch (e) {
+     console.error('Failed to load vehicle', e)
+   } finally {
+     isLoading.value = false
+   }
   try {
-    const res = await vehicleAPI.getOne(route.params.id as string)
-    vehicle.value = res.data.data ?? res.data
-  } catch (e) {
-    console.error('Failed to load vehicle', e)
+    const [vRes, photoRes] = await Promise.all([
+      vehicleAPI.getOne(vehicleId),
+      vehiclePhotoAPI.getByVehicle(vehicleId)
+    ])
+    vehicle.value = vRes.data.data ?? vRes.data
+    photos.value  = photoRes.data.data ?? photoRes.data
+  } catch (err) {
+    console.error('Failed to load vehicle', err)
   } finally {
     isLoading.value = false
   }
@@ -263,11 +291,13 @@ const goToBooking = () => {
   router.push({
     path: '/booking',
     query: {
-      vehicleId: vehicle.value.Vehicle_ID,
-      vehicleName: vehicle.value.Vehicle_Model,
-      vehicleType: vehicle.value.Vehicle_Type,
-      dailyRate: vehicle.value.Daily_Rate,
-      withDriver: selectedDriver.value === 'with' ? '1' : '0',
+      vehicleId:         vehicle.value.Vehicle_ID,
+      vehicleName:       vehicle.value.Vehicle_Model,
+      ownerName:         vehicle.value.Business_Name,
+      dailyRate:         String(vehicle.value.Daily_Rate),
+      withDriver:        selectedDriver.value === 'with' ? '1' : '0',
+      ownerAccountId:    vehicle.value.Owner_Account_ID,
+      negotiated:        'false',
     }
   })
 }
@@ -299,6 +329,24 @@ onIonViewWillEnter(loadVehicle)
 <style scoped>
 .page-content { --background: #f5f5f7; }
 
+.vehicle-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  inset: 0;
+}
+
+.vehicle-hero {
+  position: relative;
+  height: 240px;        
+  background: #f0f0f7;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;  
+  justify-content: center;
+}
+
 .detail-toolbar {
   --background: #fff;
   --border-width: 0;
@@ -308,27 +356,6 @@ onIonViewWillEnter(loadVehicle)
 .back-btn { --color: #0f0f1a; }
 .fav-icon { font-size: 22px; color: #555; }
 
-/* Hero */
-.vehicle-hero {
-  background: linear-gradient(135deg, #f0f0f7, #e8e8f0);
-  height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 12px;
-  position: relative;
-}
-.vehicle-emoji { font-size: 80px; }
-.avail-badge {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  border-radius: 20px;
-  padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 700;
-}
 .avail-badge.avail { background: #e8fdf6; color: #00a87e; }
 .avail-badge.unavail { background: #fde8e8; color: #e05555; }
 

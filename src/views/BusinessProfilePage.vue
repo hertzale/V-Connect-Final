@@ -168,12 +168,12 @@ const bizID = ref('')  // store the business ID
 const vehicleTypes = ref<string[]>([])
 // form fields mapped to DB columns
 const biz = ref({
-  Business_Name:      '',
-  Description:        '',
-  Business_Address:   '',
-  Business_ContactNo: '',
-  Business_Email:     '',
-  Service_Area:       '',
+  Business_Name:    '',
+  Description:      '',
+  Business_Address: '',
+  Business_ContactNo:   '',
+  Business_Email:            '',
+  Service_Area:     '',
 })
 
 // read-only from DB — no matching column, derive from vehicles
@@ -222,7 +222,7 @@ async function saveProfile() {
       business_name:       biz.value.Business_Name,
       description:         biz.value.Description,
       business_address:    biz.value.Business_Address,
-      business_contact_no: biz.value.Business_ContactNo,
+      business_contactno: biz.value.Business_ContactNo,
       business_email:      biz.value.Business_Email,
       service_area:        biz.value.Service_Area,
     })

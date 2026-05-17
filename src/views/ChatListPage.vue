@@ -164,8 +164,10 @@ addIcons({
 const router = useIonRouter()
 const searchQuery = ref('')
 const isLoading = ref(false)
+
 const chats = ref<any[]>([])
 const userRole = ref('')
+
 
 const filteredChats = computed(() =>
   chats.value.filter(c =>
@@ -214,7 +216,7 @@ function openChat(chat: any) {
       vehicleName: chat.Vehicle_Model,
       withDriver: chat.With_Driver,
       customerAccountId: chat.Customer_Account_ID,
-      ownerAccountId: chat.Business_Account_ID,
+      ownerAccountId: chat.Business_ID,
     } 
   })
 }

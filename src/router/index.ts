@@ -108,7 +108,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import("../views/ListingsPage.vue"),
   },
   {
-    path: '/owner-negotiate/:id',
+    path: '/negotiate-owner/:id',
     name: 'OwnerNegotiate',
     component: () => import('../views/OwnerNegotiatePage.vue'),
   },
@@ -132,6 +132,11 @@ const routes: Array<RouteRecordRaw> = [
     name: "OwnerDashboard",
     component: () => import("../views/OwnerDashboardPage.vue"),
   },
+  {
+    path: '/negotiate-list',
+    name: 'NegotiateList',
+    component: () => import('../views/BusinessChatlist.vue'),
+  },
 ];
 
 const router = createRouter({
@@ -140,16 +145,17 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
-  const role = user.role
+  /*const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const role = user.Role
 
-  if (to.path === '/dashboard' && role !== 'Business_Owner') {
+  if (to.path === '/owner-dashboard' && role !== 'Business_Owner') {
     next('/home')
   } else if (to.path === '/home' && role === 'Business_Owner') {
-    next('/dashboard')
+    next('/owner-dashboard')
   } else {
     next()
-  }
+  }*/
+ next()
 })
 
 export default router;

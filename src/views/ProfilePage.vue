@@ -270,7 +270,23 @@ const loadMyVehicles = async () => {
 }
 
 onIonViewWillEnter(async () => {
-  loadUser()
+  try {
+    const res = await axios.get('http://localhost:3000/api/persons/me', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+    const p = res.data.data
+    form.value = {
+      name: p.Name,
+      email: p.Email,
+      contact_number: p.Contact_Number,
+      address: p.Address,
+      drivers_license: p.Drivers_License || ''
+    }
+    const saved = JSON.parse(localStorage.getItem('user') || '{}')
+    localStorage.setItem('user', JSON.stringify({ ...saved, ...p }))
+  } catch {
+    loadUser() // fallback to localStorage
+  }
   await loadMyVehicles()
 })
 

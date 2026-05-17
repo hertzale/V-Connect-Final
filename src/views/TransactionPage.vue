@@ -25,13 +25,17 @@
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      
+      <div class="empty-state" v-if="isLoading">
+        <div class="empty-icon">⏳</div>
+        <div class="empty-title">Loading...</div>
+      </div>
+
       <!-- Empty State -->
-      <div class="empty-state" v-if="filteredTransactions.length === 0">
+      <div class="empty-state" v-else-if="filteredTransactions.length === 0">
         <div class="empty-icon">{{ emptyStateFor(activeTab).icon }}</div>
         <div class="empty-title">{{ emptyStateFor(activeTab).title }}</div>
         <div class="empty-sub">{{ emptyStateFor(activeTab).sub }}</div>
-        <ion-button class="empty-btn" router-link="/home" v-if="activeTab !== 'Completed'">
+        <ion-button class="empty-btn" router-link="/businesses" v-if="activeTab !== 'Completed'">
           Browse Vehicles
         </ion-button>
       </div>
@@ -92,15 +96,11 @@
                   v-if="tx.Rental_Status === 'Completed'"
                   fill="outline"
                   size="small"
-                  :class="hasSubmittedFeedback(tx.Transaction_ID) ? 'btn-reviewed' : 'btn-review'"
-                  @click.stop="!hasSubmittedFeedback(tx.Transaction_ID) && openReview(tx)"
-                  :disabled="hasSubmittedFeedback(tx.Transaction_ID)"
+                  class="btn-review"
+                  @click.stop="openReview(tx)"
                 >
-                  <ion-icon
-                    :name="hasSubmittedFeedback(tx.Transaction_ID) ? 'star' : 'star-outline'"
-                    slot="start"
-                  ></ion-icon>
-                  {{ hasSubmittedFeedback(tx.Transaction_ID) ? 'Reviewed ✅' : 'Review' }}
+                  <ion-icon name="star-outline" slot="start"></ion-icon>
+                  Review
                 </ion-button>
                 <ion-button
                   v-if="tx.Rental_Status === 'Completed'"
@@ -133,7 +133,6 @@ const router = useIonRouter()
 const activeTab = ref('Pending')               
 const transactions = ref<any[]>([])
 const isLoading = ref(false)
-const submittedFeedbacks = ref<Set<string>>(new Set())
 
 const tabs = [
   { key: 'Pending',   label: 'Upcoming' },
@@ -148,12 +147,9 @@ const filteredTransactions = computed(() =>
   transactions.value.filter(t => t.Rental_Status === activeTab.value)
 )
 
-
-
 function countFor(status: string) {
   return transactions.value.filter(t => t.Rental_Status === status).length
 }
-
 
 function statusLabel(status: string) {
   const map: Record<string, string> = {
@@ -202,20 +198,7 @@ function cancelTransaction(tx: any) {
 }
 
 function openReview(tx: any) {
-  router.push({
-    path: `/feedback/${tx.Transaction_ID}`,
-    query: {
-      transactionId: tx.Transaction_ID,
-      vehicleId:     tx.Vehicle_ID,
-      vehicleName:   tx.Vehicle_Model,
-      bizName:       tx.Business_Name,
-      rentalDates:   `${tx.Start_Date} → ${tx.End_Date}`
-    }
-  })
-}
-
-function hasSubmittedFeedback(transactionId: string) {
-  return submittedFeedbacks.value.has(transactionId)
+  router.push(`/review/${tx.Transaction_ID}`)
 }
 
 function rebookVehicle(tx: any) {
@@ -226,29 +209,12 @@ function doRefresh(event: any) {
   loadTransactions().then(() => event.target.complete())
 }
 
-onIonViewWillEnter(async () => {
-  await loadTransactions()
-
-  // Load submitted feedbacks from localStorage
-  const saved = localStorage.getItem('submittedFeedbacks')
-  if (saved) {
-    submittedFeedbacks.value = new Set(JSON.parse(saved))
-  }
-})
-
+onIonViewWillEnter(loadTransactions)
 onMounted(loadTransactions)
 </script>
 
 <style scoped>
 .page-content { --background: #f5f5f7; }
-
-.btn-reviewed {
-  --color: #6b7280;
-  --border-color: #6b7280;
-  --border-radius: 10px;
-  font-weight: 700;
-  height: 34px;
-}
 
 .tx-toolbar {
   --background: #fff;

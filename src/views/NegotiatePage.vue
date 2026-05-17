@@ -155,7 +155,7 @@
     <ion-footer class="ion-no-border agreed-footer" v-if="agreedPrice">
       <div class="agreed-footer-inner">
         <ion-button expand="block" class="btn-proceed" @click="goToBooking">
-          Proceed to Booking · ₱{{ agreedPrice }}/day
+          View My Transaction
           <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
         </ion-button>
       </div>
@@ -247,9 +247,96 @@ import { useRoute } from 'vue-router'
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonButton, IonContent, IonFooter, IonIcon, IonTextarea,
-  IonModal, IonToast, useIonRouter
+  IonModal, IonToast, useIonRouter, onIonViewWillEnter, onIonViewWillLeave
 } from '@ionic/vue'
 import { inquiryAPI, notificationAPI } from '@/api'
+
+let pollInterval: any = null
+
+async function pollInquiryStatus() {
+  const lastInquiryId = messages.value
+    .filter(m => m.type === 'offer')
+    .slice(-1)[0]?.inquiryId
+
+  if (!lastInquiryId) return
+
+  try {
+    const res = await inquiryAPI.getOne(lastInquiryId)
+    const inq = res.data.data ?? res.data
+
+    // ✅ existing: owner accepted
+    if (inq.Inquiry_Status === 'Accepted' && !agreedPrice.value) {
+      agreedPrice.value = Number(inq.Agreed_Price) || Number(inq.Offered_Price)
+      messages.value.push({
+        id: msgId++, sender: 'owner', type: 'text',
+        text: `✅ Offer of ₱${agreedPrice.value}/day accepted! You can now view your transaction.`,
+        time: getNow()
+      })
+      scrollBottom()
+    }
+
+    // ✅ existing: owner rejected
+    if (inq.Inquiry_Status === 'Rejected') {
+      const existing = messages.value.find(
+        m => m.inquiryId === lastInquiryId && m.inquiryStatus === 'Rejected'
+      )
+      if (!existing) {
+        messages.value.forEach(m => {
+          if (m.inquiryId === lastInquiryId) m.inquiryStatus = 'Rejected'
+        })
+        messages.value.push({
+          id: msgId++, sender: 'owner', type: 'text',
+          text: `Sorry, I cannot accept this offer. Feel free to send a new one.`,
+          time: getNow()
+        })
+        scrollBottom()
+      }
+    }
+
+    // ✅ NEW: owner sent a counteroffer
+    if (
+      inq.Inquiry_Status === 'Pending' &&
+      inq.Sender_Type === 'Owner'  // ← backend needs to return this
+    ) {
+      const alreadyShown = messages.value.find(
+        m => m.type === 'offer' && m.sender === 'owner' && m.inquiryId === lastInquiryId
+      )
+      if (!alreadyShown) {
+        messages.value.push({
+          id: msgId++,
+          sender: 'owner',
+          type: 'offer',
+          inquiryId:     lastInquiryId,
+          offeredPrice:  Number(inq.Offered_Price),
+          offerDays:     calcDays(inq.Start_Date, inq.End_Date),
+          startDate:     inq.Start_Date,
+          endDate:       inq.End_Date,
+          time:          getNow(),
+          inquiryStatus: 'Pending'
+        })
+        scrollBottom()
+      }
+    }
+
+  } catch (e) {
+    console.warn('Poll failed', e)
+  }
+}
+
+function calcDays(start: string, end: string) {
+  if (!start || !end) return 0
+  return Math.ceil(
+    (new Date(end).getTime() - new Date(start).getTime()) / 86400000
+  )
+}
+
+onIonViewWillEnter(() => {
+  pollInterval = setInterval(pollInquiryStatus, 5000)
+})
+
+onIonViewWillLeave(() => {
+  if (pollInterval) clearInterval(pollInterval)
+})
 
 // ─── Schema-aligned Inquiry_Status values ─────────────────────────────────────
 type InquiryStatus = 'Pending' | 'Accepted' | 'Rejected' | 'Completed'
@@ -278,9 +365,8 @@ const router = useIonRouter()
 
 const vehicleId         = ref(route.query.vehicleId         as string || '')
 const listedPrice       = ref(Number(route.query.dailyRate) || 0)      // VEHICLE.Daily_Rate
-const withDriver        = ref(Number(route.query.withDriver) || 0)     // RENTAL_TRANSACTION.With_Driver
-const ownerName         = ref(route.query.ownerName         as string || 'AutoLux Rentals')
-const vehicleName       = ref(route.query.vehicleName       as string || 'Toyota Vios 2022')
+const ownerName         = ref(route.query.ownerName         as string || '')
+const vehicleName       = ref(route.query.vehicleName       as string || '')
 const customerAccountId = ref(route.query.customerAccountId as string || '')  // PERSON.Account_ID (customer)
 const ownerAccountId    = ref(route.query.ownerAccountId    as string || '')  // PERSON.Account_ID (owner)
 
@@ -409,12 +495,12 @@ async function sendOffer() {
     }
 
     // Notify owner — non-blocking, won't fail the whole sendOffer if this errors
-    await notificationAPI.create({
-      Notification_Type: 'Inquiry',
-      Message:           `New offer of ₱${offerAmount.value}/day for ${vehicleName.value}`,
-      Reference_ID:      newInquiryId,
-      Reference_Type:    'Inquiry',
-      Is_Read:           false
+    notificationAPI.create({
+      notification_type: 'Inquiry',
+      message: `New offer of ₱${offerAmount.value}/day for ${vehicleName.value}`,
+      reference_id: newInquiryId,
+      reference_type: 'Inquiry',
+      is_read: false
     }).catch(() => console.warn('Notification could not be created.'))
 
     offerAmount.value    = ''
@@ -436,17 +522,17 @@ async function sendOffer() {
 async function acceptOffer(msg: Message) {
   if (!msg.inquiryId) return
   try {
-    await inquiryAPI.respond(msg.inquiryId, 'Accepted', msg.offeredPrice)
+    await inquiryAPI.respond(msg.inquiryId, { decision: 'accept', counter_price: msg.offeredPrice })
 
     msg.inquiryStatus = 'Accepted'
     agreedPrice.value  = msg.offeredPrice ?? null
 
     await notificationAPI.create({
-      Notification_Type: 'Inquiry',
-      Message:           `Offer of ₱${msg.offeredPrice}/day has been accepted.`,
-      Reference_ID:      msg.inquiryId,
-      Reference_Type:    'Inquiry',
-      Is_Read:           false
+      notification_type: 'Inquiry',
+      message:           `Offer of ₱${msg.offeredPrice}/day has been accepted.`,
+      reference_id:      msg.inquiryId,
+      reference_type:    'Inquiry',
+      is_read:           false
     }).catch(() => console.warn('Notification could not be created.'))
 
     messages.value.push({
@@ -465,16 +551,16 @@ async function acceptOffer(msg: Message) {
 async function declineOffer(msg: Message) {
   if (!msg.inquiryId) return
   try {
-    await inquiryAPI.respond(msg.inquiryId, 'Rejected')
+    await inquiryAPI.respond(msg.inquiryId, { decision: 'decline' })
 
     msg.inquiryStatus = 'Rejected'
 
     await notificationAPI.create({
-      Notification_Type: 'Inquiry',
-      Message:           `Offer of ₱${msg.offeredPrice}/day has been declined.`,
-      Reference_ID:      msg.inquiryId,
-      Reference_Type:    'Inquiry',
-      Is_Read:           false
+      notification_type: 'Inquiry',
+      message:           `Offer of ₱${msg.offeredPrice}/day has been declined.`,
+      reference_id:      msg.inquiryId,
+      reference_type:    'Inquiry',
+      is_read:           false
     }).catch(() => console.warn('Notification could not be created.'))
 
     messages.value.push({
@@ -488,41 +574,11 @@ async function declineOffer(msg: Message) {
   }
 }
 
-// ─── Mark Inquiry as Completed ────────────────────────────────────────────────
-// Called internally if needed. From other pages (e.g. after rental finishes),
-// call inquiryAPI.updateStatus() directly — export is not allowed in <script setup>.
-async function markInquiryCompleted(inquiryId: string) {
-  try {
-    await inquiryAPI.respond(inquiryId, 'Completed')
-    // Optionally update local state or show a toast here
-  } catch (err: any) {
-    console.error('Failed to mark inquiry as completed:', err)
-  }
-}
 
 // ─── Proceed to Booking ───────────────────────────────────────────────────────
 // agreedPrice (INQUIRY.Agreed_Price) passed as dailyRate for Total_Amount calculation
 async function goToBooking() {
-  const lastOffer = messages.value
-    .filter(msg => msg.type === 'offer' && msg.inquiryStatus === 'Accepted')
-    .slice(-1)[0]
-  if (lastOffer?.inquiryId) {
-    await markInquiryCompleted(lastOffer.inquiryId)
-  }
-
-  router.push({
-    path: '/booking',
-    query: {
-      vehicleId:         vehicleId.value,
-      vehicleName:       vehicleName.value,
-      ownerName:         ownerName.value,
-      dailyRate:         String(agreedPrice.value),  // Agreed_Price → used for Total_Amount
-      withDriver:        String(withDriver.value),   // RENTAL_TRANSACTION.With_Driver
-      customerAccountId: customerAccountId.value,    // passed forward for booking creation
-      ownerAccountId:    ownerAccountId.value,
-      negotiated:        'true'
-    }
-  })
+  router.push('/transactions')
 }
 </script>
 

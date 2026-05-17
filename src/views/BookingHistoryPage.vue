@@ -280,7 +280,7 @@ const clearFilters = () => {
 const loadTransactions = async () => {
   isLoading.value = true
   try {
-    const res = await transactionAPI.getAll()
+    const res = await transactionAPI.getAll({ role: 'owner' })
     allTransactions.value = res.data.data ?? res.data
     filtered.value        = [...allTransactions.value]
   } catch (err) {
