@@ -163,28 +163,29 @@
 
     <!-- Tab Bar -->
     <div class="tab-bar">
-      <div class="tab-item active" @click="goTo('/owner-dashboard')">
+      <div class="tab-item" :class="{ active: isActive('/owner-dashboard') }" @click="goTo('/owner-dashboard')">
         <ion-icon name="grid-outline"></ion-icon>
         <span>Dashboard</span>
       </div>
-      <div class="tab-item" @click="goTo('/transaction-requests')">
+      <div class="tab-item" :class="{ active: isActive('/transaction-requests') }" @click="goTo('/transaction-requests')">
         <div class="notif-wrap">
           <ion-icon name="receipt-outline"></ion-icon>
-          <div class="tab-badge" v-if="pendingCount > 0">{{ pendingCount }}</div>
+          <div class="tab-badge-bar" v-if="pendingCount > 0">{{ pendingCount }}</div>
         </div>
         <span>Requests</span>
       </div>
-      <div class="tab-item" @click="goTo('/post')">
-        <div class="plus-btn">
-          <ion-icon name="add-outline"></ion-icon>
+      <div class="tab-item" :class="{ active: isActive('/owner-chat') }" @click="goTo('/owner-chat')">
+        <div class="notif-wrap">
+          <ion-icon name="chatbubble-outline"></ion-icon>
+          <div class="tab-badge-bar" v-if="unreadInquiries > 0">{{ unreadInquiries }}</div>
         </div>
-        <span>Post</span>
+        <span>Chat</span>
       </div>
-      <div class="tab-item" @click="goTo('/listings')">
+      <div class="tab-item" :class="{ active: isActive('/listings') }" @click="goTo('/listings')">
         <ion-icon name="list-outline"></ion-icon>
         <span>Listings</span>
       </div>
-      <div class="tab-item" @click="goTo('/booking-history')">
+      <div class="tab-item" :class="{ active: isActive('/booking-history') }" @click="goTo('/booking-history')">
         <ion-icon name="bar-chart-outline"></ion-icon>
         <span>Reports</span>
       </div>
@@ -201,7 +202,7 @@ import {
   listOutline, barChartOutline, carOutline,
   personOutline, settingsOutline, logOutOutline 
 } from 'ionicons/icons'
-import { transactionAPI, vehicleAPI } from '@/api'
+import { transactionAPI, vehicleAPI , inquiryAPI} from '@/api'
 
 addIcons({
   'grid-outline': gridOutline,

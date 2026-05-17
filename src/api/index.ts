@@ -57,7 +57,6 @@ export const vehicleAPI = {
   }) => api.put(`/api/vehicles/${id}`, data),
 
   updateStatus: (id: string, status: 'Available' | 'Rented' | 'Under Maintenance') =>
->>>>>>> bd2fdfa (added owner negotiate page)
     api.patch(`/api/vehicles/${id}/status`, { status }),
 
   delete: (id: string) =>
@@ -90,11 +89,8 @@ export const transactionAPI = {
   // ⚠️ correct endpoint is PATCH /:id/status NOT /:id/respond
   updateStatus: (
     id: string,
-<<<<<<< HEAD
-    status: 'Confirmed' | 'Cancelled' | 'Ongoing' | 'Completed'
-=======
+
     status: 'Pending' | 'Reserved' | 'Cancelled' | 'Ongoing' | 'Completed' | 'Overdue'
->>>>>>> bd2fdfa (added owner negotiate page)
   ) => api.patch(`/api/transactions/${id}/status`, { status }),
 }
 
@@ -206,8 +202,6 @@ export const inquiryAPI = {
   cancel: (id: string) =>
     api.patch(`/api/inquiries/${id}/cancel`),
 }
-<<<<<<< HEAD
-=======
 // ── Vehicle Photos ───────────────────────────────────────
 export const vehiclePhotoAPI = {
   // Get all photos for a vehicle
@@ -317,5 +311,4 @@ export const receiptAPI = {
   }) => api.post('/api/receipts', data),
 }
 
->>>>>>> bd2fdfa (added owner negotiate page)
 export default api
