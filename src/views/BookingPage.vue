@@ -215,35 +215,34 @@ const canSubmit = computed(() =>
 
 async function confirmBooking() {
   if (!canSubmit.value) return
-  isLoading.value = true
-  errorMessage.value = ''
 
-  const pickupLocation  = deliveryOption.value === 'pickup'
+  const pickupLocation = deliveryOption.value === 'pickup'
     ? 'Self Pickup'
     : deliveryAddress.value
 
-
-  try {
-    await transactionAPI.create({
-      vehicle_id:   vehicleId.value,
-      start_date:   startDate.value,
-      end_date:     endDate.value,
-      start_time:   `${pickupTime.value}:00`,
-      end_time:   `${pickupTime.value}:00`,
-      pickup_location:       pickupLocation,
-      drop_off_location:     pickupLocation,
-      with_driver:           withDriverOpt.value === 1 ? 1 : 0,
-      other_details:   notes.value || undefined,
-      driver_name:     driverName.value || undefined,
-      drivers_license: licenseNum.value || undefined,
-    })
-    router.push('/transactions')
-  } catch (err: any) {
-    errorMessage.value = err.response?.data?.message || 'Booking failed. Try again.'
-  } finally {
-    isLoading.value = false
-  }
+  // ✅ Navigate to PaymentPage instead of calling API directly
+  router.push({
+    path: '/payment',
+    query: {
+      vehicleId:         vehicleId.value,
+      vehicleName:       vehicleName.value,
+      ownerName:         ownerName.value,
+      dailyRate:         String(agreedPrice.value),
+      startDate:         startDate.value,
+      endDate:           endDate.value,
+      startTime:         `${pickupTime.value}:00`,
+      endTime:           `${pickupTime.value}:00`,
+      pickupLocation:    pickupLocation,
+      dropoffLocation:   pickupLocation,
+      withDriver:        withDriverOpt.value === 1 ? '1' : '0',
+      negotiated:        isNegotiated.value ? 'true' : 'false',
+      otherDetails:      notes.value || '',
+      driverName:        driverName.value || '',
+      driversLicense:    licenseNum.value || '',
+    }
+  })
 }
+
 </script>
 
 <style scoped>

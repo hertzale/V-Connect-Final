@@ -90,6 +90,11 @@ const routes: Array<RouteRecordRaw> = [
     name: "Feedback",
     component: () => import("../views/FeedbackPage.vue"),
   },
+  {
+    path: '/payment',
+    name: 'Payment',
+    component: () => import('../views/PaymentPage.vue'),
+  },
 
   // ── Business Owner ────────────────────────────────────────
   {
