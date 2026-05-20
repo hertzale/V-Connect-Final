@@ -81,8 +81,7 @@
             </div>
 
             <div class="tx-footer-row">
-              <div class="tx-amount">₱{{ tx.Total_Amount.toLocaleString() }}</div>
-              <div class="tx-actions">
+              <div class="tx-amount">₱{{ (tx.Total_Amount ?? 0).toLocaleString() }}</div>              <div class="tx-actions">
                 <ion-button
                   v-if="tx.Rental_Status === 'Pending'"
                   fill="outline"
@@ -188,7 +187,7 @@ async function loadTransactions() {
 }
 
 function openDetail(tx: any) {
-  router.push(`/transaction/${tx.Transaction_ID}`)
+  router.push(`/transactions/${tx.Transaction_ID}`)
 }
 
 function cancelTransaction(tx: any) {

@@ -118,25 +118,16 @@ const goLogin = () => {
 }
 
 const register = async () => {
-  // Validate required fields
-  if (
-    !username.value ||
-    !email.value ||
-    !password.value ||
-    !confirmpassword.value ||
-    !address.value ||
-    !contact_number.value
-  ) {
+  // Validate FIRST before anything else
+  if (!username.value || !email.value || !password.value ||
+      !confirmpassword.value || !address.value || !contact_number.value) {
     errorMessage.value = 'Please fill in all fields'
     return
   }
-
-  // Business owners must have driver's license
   if (isBusiness.value && !drivers_license.value) {
     errorMessage.value = "Driver's license is required for vehicle owners"
     return
   }
-
   if (password.value !== confirmpassword.value) {
     errorMessage.value = 'Passwords do not match!'
     return
@@ -152,8 +143,31 @@ const register = async () => {
       contact_number: contact_number.value,
       address: address.value,
       drivers_license: drivers_license.value || null,
-      password: password.value
+      password: password.value,
+      role: isBusiness.value ? 'business' : 'customer'
     })
+
+    if (isBusiness.value) {
+      const loginRes = await axios.post('http://localhost:3000/api/auth/login', {
+        email: email.value,
+        password: password.value
+      })
+      console.log('loginRes.data:', JSON.stringify(loginRes.data))
+      const token = loginRes.data.data.token
+      console.log('token:', token)
+
+      // Store token first so auth interceptor picks it up
+    localStorage.setItem('token', token)
+    localStorage.setItem('user', JSON.stringify(loginRes.data.user))
+
+      await axios.post('http://localhost:3000/api/businesses', {
+        business_name: username.value + "'s Business",
+        business_address: address.value,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      
+    }
 
     router.push('/login')
 

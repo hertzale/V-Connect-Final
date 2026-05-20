@@ -93,44 +93,62 @@
         </div>
 
         <!-- Chat Messages -->
-        <div
-          v-for="msg in messages"
-          :key="msg.id"
-          class="msg-row"
-          :class="msg.sender === 'me' ? 'msg-right' : 'msg-left'"
-        >
-          <div v-if="msg.sender === 'customer'" class="msg-avatar">👤</div>
+        <!-- Chat Messages -->
+<div
+  v-for="msg in messages"
+  :key="msg.id"
+  class="msg-row"
+  :class="msg.sender === 'me' ? 'msg-right' : 'msg-left'"
+>
+  <div v-if="msg.sender === 'customer'" class="msg-avatar">👤</div>
 
-          <div class="msg-bubble-wrap">
-            <!-- Counter offer card -->
-            <div
-              v-if="msg.type === 'counter'"
-              class="offer-card offer-mine"
-            >
-              <div class="offer-card-label">💬 Your counteroffer</div>
-              <div class="offer-card-price">
-                ₱{{ msg.offeredPrice?.toLocaleString() }}<span>/day</span>
-              </div>
-              <div class="offer-card-details" v-if="msg.offerDays">
-                {{ msg.offerDays }} day(s) · {{ msg.startDate }} to {{ msg.endDate }}
-              </div>
-              <div v-if="msg.status === 'Pending'" class="offer-pending-tag">⏳ Waiting for response</div>
-              <div v-if="msg.status === 'Accepted'" class="offer-accepted-tag">✅ Customer accepted</div>
-              <div v-if="msg.status === 'Rejected'" class="offer-declined-tag">❌ Customer declined</div>
-            </div>
+  <div class="msg-bubble-wrap">
 
-            <!-- Regular text bubble -->
-            <div
-              v-else
-              class="msg-bubble"
-              :class="msg.sender === 'me' ? 'bubble-mine' : 'bubble-theirs'"
-            >
-              {{ msg.text }}
-            </div>
+    <!-- Counter offer card -->
+    <div v-if="msg.type === 'counter'" class="offer-card" :class="msg.sender === 'me' ? 'offer-mine' : 'offer-theirs'">
+      <div class="offer-card-label">
+        {{ msg.sender === 'me' ? '💬 Your counteroffer' : '💬 Customer sent an offer' }}
+      </div>
+      <div class="offer-card-price">
+        ₱{{ msg.offeredPrice?.toLocaleString() }}<span>/day</span>
+      </div>
+      <div class="offer-card-details" v-if="msg.offerDays">
+        {{ msg.offerDays }} day(s) · {{ formatDate(msg.startDate ?? '') }} to {{ formatDate(msg.endDate ?? '') }}
+      </div>
 
-            <div class="msg-time">{{ msg.time }}</div>
-          </div>
-        </div>
+      <!-- Actions for customer counter — only when Negotiating -->
+      <div
+        v-if="msg.sender === 'customer' && inquiry?.Inquiry_Status === 'Negotiating' && !agreedPrice"
+        class="offer-actions"
+      >
+        <ion-button size="small" fill="outline" class="btn-decline" @click="declineOffer" :disabled="isActing">
+          Decline
+        </ion-button>
+        <ion-button size="small" fill="outline" class="btn-counter" @click="showCounterModal = true" :disabled="isActing">
+          Counter
+        </ion-button>
+        <ion-button size="small" class="btn-accept" @click="acceptOffer" :disabled="isActing">
+          {{ isActing ? '...' : 'Accept ✓' }}
+        </ion-button>
+      </div>
+
+      <div v-if="msg.status === 'Pending'" class="offer-pending-tag">⏳ Waiting for response</div>
+      <div v-if="msg.status === 'Confirmed'" class="offer-accepted-tag">✅ Accepted</div>
+      <div v-if="msg.status === 'Cancelled'" class="offer-declined-tag">❌ Declined</div>
+    </div>
+
+    <!-- Regular text bubble -->
+    <div
+      v-else
+      class="msg-bubble"
+      :class="msg.sender === 'me' ? 'bubble-mine' : 'bubble-theirs'"
+    >
+      {{ msg.text }}
+    </div>
+
+    <div class="msg-time">{{ msg.time }}</div>
+  </div>
+</div>
 
         <!-- Agreed Banner -->
         <div v-if="agreedPrice" class="agreed-banner">
@@ -285,7 +303,7 @@ addIcons({
 })
 
 // ─── Types ─────────────────────────────────────────────────
-type InquiryStatus = 'Pending' | 'Accepted' | 'Rejected' | 'Completed'
+type InquiryStatus = 'Pending' | 'Confirmed' |'Cancelled'|'Accepted' | 'Rejected' | 'Completed'
 
 interface ChatMessage {
   id: number
@@ -386,6 +404,76 @@ async function loadInquiry() {
       agreedPrice.value = Number(inquiry.value.Agreed_Price) || customerOffer.value
     }
 
+    const inq = inquiry.value
+    const historyMessages: any[] = []
+
+    historyMessages.push({
+      id: msgId++,
+      sender: 'customer',
+      type: 'counter',
+      offeredPrice: Number(inq.Offered_Price),
+      offerDays:    calcDays(inq.Start_Date, inq.End_Date),
+      startDate:    inq.Start_Date,
+      endDate:      inq.End_Date,
+      status:       inq.Inquiry_Status,
+      time:         new Date(inq.Inquiry_Date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    })
+
+    // Customer message
+    if (inq.Customer_Message) {
+      historyMessages.push({
+        id: msgId++, sender: 'customer', type: 'text',
+        text: inq.Customer_Message, time: getNow()
+      })
+    }
+
+    // Owner counteroffer
+    if (inq.Owner_Set_Price) {
+      historyMessages.push({
+        id: msgId++,
+        sender: 'me',
+        type: 'counter',
+        offeredPrice: Number(inq.Owner_Set_Price),
+        offerDays:    calcDays(inq.Start_Date, inq.End_Date),
+        startDate:    inq.Start_Date,
+        endDate:      inq.End_Date,
+        status:       inq.Inquiry_Status,
+        time:         getNow()
+      })
+    }
+
+    // Owner message
+    if (inq.Owner_Message) {
+      historyMessages.push({
+        id: msgId++, sender: 'me', type: 'text',
+        text: inq.Owner_Message, time: getNow()
+      })
+    }
+
+    // Customer counter
+    if (inq.Customer_Counter_Price) {
+      historyMessages.push({
+        id: msgId++,
+        sender: 'customer',
+        type: 'counter',
+        offeredPrice: Number(inq.Customer_Counter_Price),
+        offerDays:    calcDays(inq.Start_Date, inq.End_Date),
+        startDate:    inq.Start_Date,
+        endDate:      inq.End_Date,
+        status:       inq.Inquiry_Status,
+        time:         getNow()
+      })
+    }
+
+    // Customer counter message
+    if (inq.Customer_Counter_Message) {
+      historyMessages.push({
+        id: msgId++, sender: 'customer', type: 'text',
+        text: inq.Customer_Counter_Message, time: getNow()
+      })
+    }
+
+    messages.value = historyMessages
   } catch (err) {
     console.error('Failed to load inquiry', err)
     showToast('Failed to load inquiry.', 'danger')
@@ -400,10 +488,9 @@ async function acceptOffer() {
   if (!inquiry.value) return
   isActing.value = true
   try {
-    await inquiryAPI.respond(
+    await inquiryAPI.ownerRespond(
       inquiryId.value, {
         decision: 'accept',
-        counter_price: Number(inquiry.value.Offered_Price)
       }
     )
 
@@ -438,7 +525,7 @@ async function declineOffer() {
   if (!inquiry.value) return
   isActing.value = true
   try {
-    await inquiryAPI.respond(inquiryId.value, {decision: 'decline'})
+    await inquiryAPI.ownerRespond(inquiryId.value, {decision: 'decline'})
 
     inquiry.value.Inquiry_Status = 'Rejected'
 
@@ -475,11 +562,22 @@ async function sendCounter() {
 
   isSendingCounter.value = true
   try {
-    await inquiryAPI.counter(
-      inquiryId.value,
-      Number(counterAmount.value),
-      counterMessage.value || undefined
-    )
+    const status = inquiry.value?.Inquiry_Status
+    
+    if(status === 'Pending'){
+      await inquiryAPI.quote(inquiryId.value, {
+        response_type: 'fixed',
+        set_price: Number(counterAmount.value),
+        owner_message: counterMessage.value || undefined
+      })
+    } else {
+    await inquiryAPI.ownerRespond(
+      inquiryId.value, {
+        decision: 'negotiate',
+        counter_price: Number(counterAmount.value),
+        owner_message: counterMessage.value || undefined
+      })
+    }
 
     const days = calcDays(inquiry.value.Start_Date, inquiry.value.End_Date)
 

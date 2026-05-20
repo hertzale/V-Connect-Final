@@ -205,7 +205,7 @@ import {
   listOutline, barChartOutline, carOutline,
   personOutline, settingsOutline, logOutOutline 
 } from 'ionicons/icons'
-import { transactionAPI, vehicleAPI } from '@/api'
+import { transactionAPI, vehicleAPI, businessAPI } from '@/api'
 
 addIcons({
   'grid-outline': gridOutline,
@@ -242,6 +242,15 @@ const loadUser = () => {
   }
 }
 
+const checkBusiness = async () => {
+  try {
+    await businessAPI.getMine()
+  } catch (err) {
+    if (err.response?.status === 404) {
+      router.push('/create-business')  // redirect to setup page
+    }
+  }
+}
 const pendingRequests = computed(() =>
   transactions.value.filter(tx => tx.Rental_Status === 'Pending')
 )

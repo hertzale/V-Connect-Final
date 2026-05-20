@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000'
+  baseURL: 'http://172.16.124.53:3000'
 })
 
 api.interceptors.request.use((config) => {
@@ -193,6 +193,13 @@ export const inquiryAPI = {
       }
     ) => api.patch(`/api/inquiries/${id}/respond`, body),
 
+    // Owner responds to customer counteroffer — PATCH /api/inquiries/:id/owner-respond
+    ownerRespond: (id: string, data: {
+      decision: 'accept' | 'decline' | 'negotiate'
+      counter_price?: number
+      owner_message?: string
+    }) => api.patch(`/api/inquiries/${id}/owner-respond`, data),
+
   // Owner finalizes negotiation — PATCH /api/inquiries/:id/finalize
   finalize: (id: string, decision: 'accept' | 'decline') =>
     api.patch(`/api/inquiries/${id}/finalize`, { decision }),
@@ -218,11 +225,12 @@ export const vehiclePhotoAPI = {
     api.get(`/api/vehicles/${vehicleId}/photos`),
 
   // Upload a new photo
-  upload: (data: {
-    vehicle_id: string
-    photo_url:  string
-    is_primary?: number    // 1 = primary, 0 = not primary
-  }) => api.post('/api/vehicle-photos', data),
+  upload: (formData: FormData) =>
+    api.post('/api/vehicle-photos', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    }),
 
   // Set a photo as primary
   setPrimary: (photoId: string) =>

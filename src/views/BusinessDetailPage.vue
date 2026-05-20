@@ -151,7 +151,21 @@ const bizId        = route.params.id as string   // from /business/:id
 const activeFilter = ref('All')
 const vehicleFilters = ['All', 'Cars', 'Vans', 'Motorcycles', 'Trucks']
 const isLoading    = ref(false)
-const business     = ref<any>(null)
+const business     = ref<any>({
+  Business_Name: '',
+  Business_Address: '',
+  Business_ContactNo: '',
+  Description: '',
+  color: '#667eea',
+  emoji: '🚗',
+  rating: '—',
+  totalRentals: 0,
+  vehicleCount: 0,
+  responseTime: '—',
+  location: '',
+  phone: '',
+  about: '',
+})
 const vehicles     = ref<any[]>([])
 
 const filteredVehicles = computed(() =>

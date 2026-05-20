@@ -162,7 +162,6 @@ import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonTitle, IonButton, IonContent, IonIcon, IonFooter, useIonRouter
 } from '@ionic/vue'
-import { transactionAPI } from '@/api'
 
 const router   = useIonRouter()
 const route    = useRoute()

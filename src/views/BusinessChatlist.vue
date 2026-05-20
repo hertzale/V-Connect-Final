@@ -197,6 +197,7 @@ function openNegotiate(inq: any) {
       vehicleName:  inq.Vehicle_Model,
       customerName: inq.Customer_Name,
       dailyRate:    inq.Daily_Rate,
+      vehicleId:   inq.Vehicle_ID,
     }
   })
 }

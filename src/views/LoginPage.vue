@@ -75,7 +75,7 @@ const login = async () => {
 
     // ── Redirect based on role ──────────────────────────
     if (user.role === 'Business_Owner') {
-      router.push('/dashboard')
+      router.push('/owner-dashboard')
     } else {
       router.push('/home')
     }

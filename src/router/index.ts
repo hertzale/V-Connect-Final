@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "@ionic/vue-router";
 import { RouteRecordRaw } from "vue-router";
-import { requireAuth, requireOwner } from './guard';
+import { requireAuth, requireCustomer, requireOwner } from './guard';
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -40,6 +40,7 @@ const routes: Array<RouteRecordRaw> = [
     path: "/home",
     name: "Home",
     component: () => import("../views/HomePage.vue"),
+    beforeEnter: requireCustomer
 
   },
   {
@@ -47,48 +48,63 @@ const routes: Array<RouteRecordRaw> = [
     path: "/business/:id",
     name: "BusinessDetail",
     component: () => import("../views/BusinessDetailPage.vue"),
+    beforeEnter: requireCustomer
   },
   {
     //hardcoded
     path: "/vehicle/:id",
     name: "VehicleDetail",
     component: () => import("../views/VehicleDetailPage.vue"),
+    beforeEnter: requireCustomer
   },
   {
     //hardcoded
     path: "/negotiate/:id?",
     name: "Negotiate",
     component: () => import("../views/NegotiatePage.vue"),
+    beforeEnter: requireCustomer
   },
   {
     path: "/booking",
     name: "Booking",
     component: () => import("../views/BookingPage.vue"),
+    beforeEnter: requireCustomer
   },
   {
     path: "/transactions",
     name: "Transactions",
     component: () => import("../views/TransactionPage.vue"),
+    beforeEnter: requireCustomer
+  },
+  {
+    path: "/transactions/:id",
+    name: "TransactionDetail",
+    component: () => import("../views/TransactionDetailPage.vue"),
+    beforeEnter: requireCustomer
   },
   {
     path: "/profile",
     name: "Profile",
     component: () => import("../views/ProfilePage.vue"),
+    beforeEnter: requireCustomer
   },
   {
     path: "/notifications",
     name: "Notifications",
     component: () => import("../views/NotificationsPage.vue"),
+    beforeEnter: requireCustomer
   },
   {
     path: "/chat",
     name: "Chats",
     component: () => import("../views/ChatListPage.vue"),
+    beforeEnter: requireCustomer
   },
   {
     path: "/feedback",
     name: "Feedback",
     component: () => import("../views/FeedbackPage.vue"),
+    beforeEnter: requireCustomer
   },
   {
     path: '/payment',
@@ -106,6 +122,10 @@ const routes: Array<RouteRecordRaw> = [
     path: "/edit-vehicle/:id",
     name: "EditVehicle",
     component: () => import("../views/EditPage.vue"),
+  },
+  {
+    path: '/create-business',
+    component: () => import('@/views/CreateBusinessPage.vue')
   },
   {
     path: "/listings",

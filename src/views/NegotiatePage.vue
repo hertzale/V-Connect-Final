@@ -75,7 +75,7 @@
 
               <!-- msg.inquiryStatus → INQUIRY.Inquiry_Status -->
               <div
-                v-if="msg.sender === 'owner' && msg.inquiryStatus === 'Pending'"
+                v-if="msg.sender === 'owner' && (msg.inquiryStatus === 'Pending' || msg.inquiryStatus === 'Owner_Quoted' || msg.inquiryStatus === 'Negotiating')"
                 class="offer-actions"
               >
                 <ion-button size="small" fill="outline" class="btn-decline" @click="declineOffer(msg)">
@@ -331,7 +331,12 @@ function calcDays(start: string, end: string) {
 }
 
 onIonViewWillEnter(() => {
-  pollInterval = setInterval(pollInquiryStatus, 5000)
+  loadInquiryHistory()
+
+  pollInterval = setInterval(
+    pollInquiryStatus,
+    5000
+  )
 })
 
 onIonViewWillLeave(() => {
@@ -339,7 +344,7 @@ onIonViewWillLeave(() => {
 })
 
 // ─── Schema-aligned Inquiry_Status values ─────────────────────────────────────
-type InquiryStatus = 'Pending' | 'Accepted' | 'Rejected' | 'Completed'
+type InquiryStatus = 'Pending' | 'Owner_Quoted' | 'Negotiating' | 'Accepted' | 'Rejected' | 'Completed'
 
 // ─── Message shape (local chat UI only) ───────────────────────────────────────
 interface Message {
@@ -412,6 +417,102 @@ const messages = ref<Message[]>([
     time: getNow()
   }
 ])
+
+// load history messages
+async function loadInquiryHistory() {
+  try {
+    const inquiryId = route.params.id as string
+    if (!inquiryId) return
+
+    const res = await inquiryAPI.getOne(inquiryId)
+    const inq = res.data.data ?? res.data
+
+    // Set vehicle/owner info from the inquiry
+    vehicleId.value   = inq.Vehicle_ID
+    vehicleName.value = inq.Vehicle_Model  || vehicleName.value
+    ownerName.value   = inq.Owner_Name     || ownerName.value
+    listedPrice.value = Number(inq.Daily_Rate) || listedPrice.value
+
+    const loadedMessages: Message[] = []
+
+    // Customer's original offer
+    loadedMessages.push({
+      id: msgId++,
+      sender: 'me',
+      type: 'offer',
+      inquiryId:     inq.Inquiry_ID,
+      offeredPrice:  Number(inq.Offered_Price),
+      offerDays:     calcDays(inq.Start_Date, inq.End_Date),
+      startDate:     inq.Start_Date,
+      endDate:       inq.End_Date,
+      time:          new Date(inq.Inquiry_Date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      inquiryStatus: inq.Inquiry_Status
+    })
+
+    // Customer message
+    if (inq.Customer_Message) {
+      loadedMessages.push({
+        id: msgId++, sender: 'me', type: 'text',
+        text: inq.Customer_Message, time: getNow()
+      })
+    }
+
+    // Owner counteroffer
+    if (inq.Owner_Set_Price || inq.Owner_Price_Min) {
+      loadedMessages.push({
+        id: msgId++,
+        sender: 'owner',
+        type: 'offer',
+        inquiryId:     inq.Inquiry_ID,
+        offeredPrice:  Number(inq.Owner_Set_Price || inq.Owner_Price_Min),
+        offerDays:     calcDays(inq.Start_Date, inq.End_Date),
+        startDate:     inq.Start_Date,
+        endDate:       inq.End_Date,
+        time:          getNow(),
+        inquiryStatus: inq.Inquiry_Status
+      })
+    }
+
+    // Owner message
+    if (inq.Owner_Message) {
+      loadedMessages.push({
+        id: msgId++, sender: 'owner', type: 'text',
+        text: inq.Owner_Message, time: getNow()
+      })
+    }
+
+    // Customer counter
+    if (inq.Customer_Counter_Price) {
+      loadedMessages.push({
+        id: msgId++,
+        sender: 'me',
+        type: 'offer',
+        inquiryId:     inq.Inquiry_ID,
+        offeredPrice:  Number(inq.Customer_Counter_Price),
+        offerDays:     calcDays(inq.Start_Date, inq.End_Date),
+        startDate:     inq.Start_Date,
+        endDate:       inq.End_Date,
+        time:          getNow(),
+        inquiryStatus: inq.Inquiry_Status
+      })
+    }
+
+    // If confirmed/cancelled
+    if (inq.Inquiry_Status === 'Confirmed') {
+      agreedPrice.value = Number(inq.Final_Agreed_Price || inq.Owner_Set_Price)
+    }
+
+    currentOffer.value = Number(
+      inq.Customer_Counter_Price || inq.Owner_Set_Price || inq.Offered_Price
+    )
+
+    messages.value = [messages.value[0], ...loadedMessages]
+    scrollBottom()
+
+  } catch (err) {
+    console.error('Failed loading inquiry history', err)
+  }
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getNow() {
@@ -512,6 +613,7 @@ async function sendOffer() {
     showToast('Offer sent successfully!')
 
   } catch (err: any) {
+    console.log('Error response:', err.response?.data)  // ← add this
     showToast(err.response?.data?.message || 'Failed to send offer.', 'danger')
   } finally {
     isSendingOffer.value = false

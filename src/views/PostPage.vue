@@ -177,16 +177,31 @@ const submitPost = async () => {
       fuel_type:         form.fuelType || undefined,
     })
 
-    const newVehicleId = res.data.data.Vehicle_ID
+    const vehicleId = res.data.data.Vehicle_ID
 
     // 2. Upload photos if any
-    for (let i = 0; i < photoFiles.value.length; i++) {
-      const file = photoFiles.value[i]
-      await vehiclePhotoAPI.upload({
-        vehicle_id: newVehicleId,
-        photo_url:  `uploads/${file.name}`,
-        is_primary: i === 0 ? 1 : 0
-      })
+    if (photoFiles.value.length > 0) {
+
+      for (let i = 0; i < photoFiles.value.length; i++) {
+        const file = photoFiles.value[i]
+
+        // skip invalid files
+        if (!file) continue
+
+        for (let i = 0; i < photoFiles.value.length; i++) {
+
+          const file = photoFiles.value[i]
+
+          const formData = new FormData()
+
+          formData.append('vehicle_id', vehicleId)
+          formData.append('photo', file)
+          formData.append('is_primary', i === 0 ? '1' : '0')
+
+          await vehiclePhotoAPI.upload(formData)
+        }
+      }
+
     }
 
     router.push('/listings')

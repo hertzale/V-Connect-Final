@@ -182,9 +182,19 @@ const vehicleCount = ref(0)
 async function loadBusiness() {
   isLoading.value = true
   try {
-    const res = await businessAPI.getAll()         // or getOne(id) if you have the ID
+    const res = await businessAPI.getAll()
+    console.log('RAW response:', JSON.stringify(res.data))          // or getOne(id) if you have the ID
     const data = res.data.data ?? res.data
-    const myBiz = Array.isArray(data) ? data[0] : data   // get owner's business
+    
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const myAccountId = user.account_id || user.Account_ID
+
+    const myBiz = Array.isArray(data) 
+      ? data.find((b: any) => b.Owner_Account_ID === myAccountId)
+      : data
+
+    console.log('myBiz keys:', Object.keys(myBiz ?? {}))
+  console.log('bizID found:', myBiz?.Business_ID)
     if (myBiz) {
       bizID.value = myBiz.Business_ID ?? ''
       biz.value.Business_Name      = myBiz.Business_Name      ?? ''
@@ -216,6 +226,7 @@ async function loadProfile() {
   }
 }
 async function saveProfile() {
+  console.log('bizID:', bizID.value)
   try {
     // you'll need the business ID — store it when loading
     await businessAPI.update(bizID.value, {
