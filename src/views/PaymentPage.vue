@@ -3,7 +3,9 @@
     <ion-content :fullscreen="true">
       <div class="page">
 
-
+        <img src="@/assets/new-bg.png" alt="Vcon Background" class="bg-mobile" />
+        <img src="@/assets/v-connect-bg-web.png" class="bg-web" />
+        
         <div class="container">
 
           <!-- Header -->

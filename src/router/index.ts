@@ -33,6 +33,7 @@ const routes: Array<RouteRecordRaw> = [
     path: "/receipt",
     name: "Receipt",
     component: () => import("../views/ReceiptPage.vue"),
+    beforeEnter: requireAuth,
   },
 
   // ── Customer ──────────────────────────────────────────────
@@ -110,6 +111,7 @@ const routes: Array<RouteRecordRaw> = [
     path: '/payment',
     name: 'Payment',
     component: () => import('../views/PaymentPage.vue'),
+    beforeEnter: requireAuth,
   },
 
   // ── Business Owner ────────────────────────────────────────
