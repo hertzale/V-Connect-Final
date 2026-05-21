@@ -2,6 +2,9 @@
   <ion-page>
     <ion-content :fullscreen="true">
       <div class="page">
+        <img src="@/assets/new-bg.png" alt="Vcon Background" class="bg-mobile" />
+        <img src="@/assets/v-connect-bg-web.png" class="bg-web" />
+
         <div class="container">
 
           <!-- Header -->
@@ -280,6 +283,21 @@ onIonViewWillEnter(loadData)
   position: relative;
   overflow: hidden;
   padding-bottom: 40px;
+}
+
+.bg-mobile {
+  display: block; position: absolute;
+  inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0; opacity: 0.9;
+}
+.bg-web {
+  display: none; position: absolute;
+  inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0; opacity: 0.9;
+}
+@media (min-width: 768px) {
+  .bg-mobile { display: none; }
+  .bg-web    { display: block; }
 }
 
 .container {

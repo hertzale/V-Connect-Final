@@ -26,10 +26,10 @@
               <label>Vehicle Type</label>
               <select v-model="form.vehicleType" class="input-field">
                 <option value="" disabled>Select type</option>
-                <option>Cars</option>
-                <option>Vans</option>
-                <option>Motorcycles</option>
-                <option>Trucks</option>
+                <option>Car</option>
+                <option>Van</option>
+                <option>Motorcycle</option>
+                <option>Truck</option>
               </select>
             </div>
 
@@ -67,6 +67,23 @@
                 v-model="form.dailyRate"
                 class="input-field"/>
             </div>
+
+           <!-- With Driver -->
+             <div class="form-group">
+              <label>With Driver</label>
+              <div class="driver-options">
+                  <div
+                    class="driver-btn"
+                   :class="{ 'driver-active': form.withDriver === true }"
+                   @click="form.withDriver = true"
+                 >Yes</div>
+                 <div
+                   class="driver-btn"
+                   :class="{ 'driver-active': form.withDriver === false }"
+                   @click="form.withDriver = false"
+                 >No</div>
+               </div>
+             </div>
 
             <!-- Registration Date -->
             <div class="form-group">
@@ -133,6 +150,7 @@ const form = reactive({
   vehicleColor:     '',
   seatCapacity:     '',
   dailyRate:        '',
+  withDriver:       null as boolean | null,
   plateNumber:      '',
   registrationDate: '',
   fuelType:         '',

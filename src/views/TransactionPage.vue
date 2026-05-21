@@ -197,7 +197,16 @@ function cancelTransaction(tx: any) {
 }
 
 function openReview(tx: any) {
-  router.push(`/review/${tx.Transaction_ID}`)
+  router.push({
+    path: '/feedback',
+    query: {
+      transactionId: tx.Transaction_ID,
+      vehicleId:     tx.Vehicle_ID,
+      vehicleName:   tx.Vehicle_Model,
+      bizName:       tx.Business_Name,
+      rentalDates:   `${tx.Start_Date} → ${tx.End_Date}`
+    }
+  })
 }
 
 function rebookVehicle(tx: any) {
