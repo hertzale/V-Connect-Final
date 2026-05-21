@@ -35,7 +35,7 @@
         <div class="empty-icon">{{ emptyStateFor(activeTab).icon }}</div>
         <div class="empty-title">{{ emptyStateFor(activeTab).title }}</div>
         <div class="empty-sub">{{ emptyStateFor(activeTab).sub }}</div>
-        <ion-button class="empty-btn" router-link="/businesses" v-if="activeTab !== 'Completed'">
+        <ion-button class="empty-btn" router-link="/home" v-if="activeTab !== 'Completed'">
           Browse Vehicles
         </ion-button>
       </div>

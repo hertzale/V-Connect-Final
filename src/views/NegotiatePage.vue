@@ -265,8 +265,8 @@ async function pollInquiryStatus() {
     const inq = res.data.data ?? res.data
 
     // ✅ existing: owner accepted
-    if (inq.Inquiry_Status === 'Accepted' && !agreedPrice.value) {
-      agreedPrice.value = Number(inq.Agreed_Price) || Number(inq.Offered_Price)
+    if (inq.Inquiry_Status === 'Confirmed' && !agreedPrice.value) {
+      agreedPrice.value = Number(inq.Final_Agreed_Price) || Number(inq.Offered_Price)
       messages.value.push({
         id: msgId++, sender: 'owner', type: 'text',
         text: `✅ Offer of ₱${agreedPrice.value}/day accepted! You can now view your transaction.`,
@@ -542,6 +542,7 @@ function openOfferModal() {
 // ─── Send Offer → POST to INQUIRY ─────────────────────────────────────────────
 // Agreed_Price omitted — nullable in schema, only set on accept
 // Inquiry_Status omitted — DB DEFAULT 'Pending' handles it automatically
+const withDriver = ref(route.query.withDriver === '1')
 async function sendOffer() {
   if (!offerAmount.value || Number(offerAmount.value) <= 0) {
     showToast('Please enter a valid offer amount.', 'danger')
@@ -563,7 +564,8 @@ async function sendOffer() {
       start_date:          offerStart.value,
       end_date:            offerEnd.value,
       message:             offerMessage.value || undefined,
-      sender_type:         'Customer'
+      sender_type:         'Customer',
+      with_driver:         withDriver.value ? 1: 0,// pass withDriver if needed
     }
 
     const response = await inquiryAPI.create(payload)
@@ -680,8 +682,30 @@ async function declineOffer(msg: Message) {
 // ─── Proceed to Booking ───────────────────────────────────────────────────────
 // agreedPrice (INQUIRY.Agreed_Price) passed as dailyRate for Total_Amount calculation
 async function goToBooking() {
-  router.push('/transactions')
+  try {
+    const inquiryId = route.params.id as string
+    if (!inquiryId) return
+
+    const res = await inquiryAPI.book(inquiryId)
+    const { transaction_id, payment_id, final_price } = res.data.data
+
+    // Navigate to payment page with negotiated price
+    router.push({
+      path: '/receipt',
+      query: {
+        transactionId:  transaction_id,
+        paymentId:      payment_id,
+        vehicleName:    vehicleName.value,
+        amount:         String(final_price || agreedPrice.value),
+        paymentType:    'Full',
+        date:           new Date().toISOString().split('T')[0],
+      }
+  }) 
+}catch (err: any) {
+    showToast(err.response?.data?.message || 'Failed to create booking.', 'danger')
+  }
 }
+
 </script>
 
 <style scoped>

@@ -255,24 +255,27 @@ const updateStatus = async (tx: any, status: 'Reserved' | 'Ongoing' | 'Completed
     await transactionAPI.updateStatus(tx.Transaction_ID, status)
     tx.Rental_Status = status
 
-    // When completing — create payment and receipt
-    if (status === 'Completed') {
-      const payRes = await paymentAPI.create({
-        transaction_id: tx.Transaction_ID,
-        total_amount: Number(tx.Total_Amount),
-        payment_method: 'Cash',
-        payment_date: new Date().toISOString().split('T')[0],
-        payment_status: 'Paid',
-      })
-      const paymentId = payRes.data.data.Payment_ID
+    if (status === 'Completed') {      const payRes = await paymentAPI.getByTransaction(tx.Transaction_ID)
+      const payment = payRes.data.data  // ← no [0] needed
 
+      if (!payment) {
+        console.error('No payment found for transaction', tx.Transaction_ID)
+        return
+      }
+
+      // Mark payment as Paid
+      await paymentAPI.updateStatus(payment.Payment_ID, 'Paid')
+
+      // Create the receipt
       const recRes = await receiptAPI.create({
-        payment_id: paymentId,
-        amount_paid: Number(tx.Total_Amount),
+        payment_id:   payment.Payment_ID,
+        amount_paid:  Number(tx.Total_Amount),
         receipt_date: new Date().toISOString().split('T')[0],
         payment_type: 'Full',
       })
-      tx._receiptId = recRes.data.data.Receipt_ID
+
+      tx._receiptId = recRes.data.data?.receipt_id
+      tx._paymentId = payment.Payment_ID
     }
 
     activeTab.value = status === 'Cancelled' ? 'Cancelled' : status
@@ -284,7 +287,23 @@ const updateStatus = async (tx: any, status: 'Reserved' | 'Ongoing' | 'Completed
 }
 
 // ADD this function
-function goToReceipt(tx: any) {
+async function goToReceipt(tx: any) {
+  let receiptId = tx._receiptId || ''
+
+    if (!receiptId) {
+    try {
+      const payRes = await paymentAPI.getByTransaction(tx.Transaction_ID)
+      const payment = payRes.data.data
+      if (payment) {
+        const recRes = await receiptAPI.getByPayment(payment.Payment_ID)
+        const receipt = recRes.data.data?.[0] ?? recRes.data?.[0]
+        receiptId = receipt?.Receipt_ID || ''
+      }
+    } catch (err) {
+      console.error('Failed to fetch receipt', err)
+    }
+  }
+
   router.push({
     path: '/receipt',
     query: {
@@ -296,6 +315,9 @@ function goToReceipt(tx: any) {
       endDate: tx.End_Date,
       pickupLocation: tx.Pickup_Location,
       amount: tx.Total_Amount,
+      paymentType: 'Full',
+      date: new Date().toISOString().split('T')[0],
+      recordedByName: tx.Owner_Name,
     }
   })
 }

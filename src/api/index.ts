@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://172.16.124.53:3000",
+  baseURL: "http://localhost:3000",
 });
 
 api.interceptors.request.use((config) => {
@@ -222,7 +222,8 @@ export const inquiryAPI = {
     api.patch(`/api/inquiries/${id}/finalize`, { decision }),
 
   // Customer books from confirmed inquiry — POST /api/inquiries/:id/book
-  book: (id: string) => api.post(`/api/inquiries/${id}/book`),
+  book: (id: string) => 
+    api.post(`/api/inquiries/${id}/book`),
 
   // Cancel inquiry — PATCH /api/inquiries/:id/cancel
   cancel: (id: string) => api.patch(`/api/inquiries/${id}/cancel`),

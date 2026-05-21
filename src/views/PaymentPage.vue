@@ -157,7 +157,7 @@ import {
   locationOutline, timeOutline, lockClosedOutline,
   shieldCheckmarkOutline
 } from 'ionicons/icons'
-import { transactionAPI, paymentAPI } from '@/api'
+import { transactionAPI, paymentAPI, receiptAPI } from '@/api'
 
 addIcons({
   'arrow-back-outline':        arrowBackOutline,
@@ -234,36 +234,44 @@ async function confirmPayment() {
       drivers_license:   driversLicense.value || undefined,
     })
 
-    console.log('txRes.data:', txRes.data)
-    
     const newTransactionId = txRes.data.data?.transaction_id || txRes.data?.transaction_id
 
     // 2. Create the payment record
     const payRes = await paymentAPI.create({
-      transaction_id:  newTransactionId,
-      total_amount:    totalAmount.value,
-      payment_method:  paymentMethod.value as 'Cash',
-      payment_date:    new Date().toISOString().split('T')[0],
-      payment_status:  'Pending',
+      transaction_id: newTransactionId,
+      total_amount:   totalAmount.value,
+      payment_method: paymentMethod.value as 'Cash',
+      payment_date:   new Date().toISOString().split('T')[0],
+      payment_status: 'Pending',
     })
-
 
     const newPaymentId = payRes.data.data?.Payment_ID || payRes.data?.Payment_ID
 
-    // 3. Navigate to receipt page with all needed data
+    // 3. Create the receipt
+    const recRes = await receiptAPI.create({
+      payment_id:   newPaymentId,
+      amount_paid:  totalAmount.value,
+      receipt_date: new Date().toISOString().split('T')[0],
+      payment_type: 'Full',
+    })
+
+    const newReceiptId = recRes.data.data?.receipt_id
+
+    // 4. Navigate to receipt page
     router.push({
       path: '/receipt',
       query: {
-        transactionId:   newTransactionId,
-        paymentId:       newPaymentId,
-        vehicleName:     vehicleName.value,
-        amount:          String(totalAmount.value),
-        paymentType:     'Full',
-        date:            new Date().toISOString().split('T')[0],
-        startDate:       startDate.value,
-        endDate:         endDate.value,
-        pickupLocation:  pickupLocation.value,
-        days:            String(rentalDays.value),
+        receiptId:      newReceiptId,
+        transactionId:  newTransactionId,
+        paymentId:      newPaymentId,
+        vehicleName:    vehicleName.value,
+        amount:         String(totalAmount.value),
+        paymentType:    'Full',
+        date:           new Date().toISOString().split('T')[0],
+        startDate:      startDate.value,
+        endDate:        endDate.value,
+        pickupLocation: pickupLocation.value,
+        days:           String(rentalDays.value),
       }
     })
 

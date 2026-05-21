@@ -400,10 +400,11 @@ async function loadInquiry() {
     customerName.value  = inquiry.value.Customer_Name  || customerName.value
     listedPrice.value   = Number(inquiry.value.Daily_Rate) || listedPrice.value
 
-    if (inquiry.value.Inquiry_Status === 'Accepted') {
-      agreedPrice.value = Number(inquiry.value.Agreed_Price) || customerOffer.value
+    if (['Confirmed', 'Accepted'].includes(inquiry.value.Inquiry_Status)) {
+      agreedPrice.value = Number(inquiry.value.Final_Agreed_Price) 
+        || Number(inquiry.value.Offered_Price) 
+        || customerOffer.value
     }
-
     const inq = inquiry.value
     const historyMessages: any[] = []
 
@@ -488,13 +489,10 @@ async function acceptOffer() {
   if (!inquiry.value) return
   isActing.value = true
   try {
-    await inquiryAPI.ownerRespond(
-      inquiryId.value, {
-        decision: 'accept',
-      }
-    )
+    // Always use ownerRespond — works for both Pending and Negotiating
+    await inquiryAPI.ownerRespond(inquiryId.value, { decision: 'accept' })
 
-    inquiry.value.Inquiry_Status = 'Accepted'
+    inquiry.value.Inquiry_Status = 'Confirmed'
     agreedPrice.value = Number(inquiry.value.Offered_Price)
 
     await notificationAPI.create({
@@ -512,7 +510,6 @@ async function acceptOffer() {
     })
     scrollBottom()
     showToast('Offer accepted!')
-
   } catch (err: any) {
     showToast(err.response?.data?.message || 'Failed to accept offer.', 'danger')
   } finally {
@@ -520,12 +517,11 @@ async function acceptOffer() {
   }
 }
 
-// ─── Decline Offer ─────────────────────────────────────────
 async function declineOffer() {
   if (!inquiry.value) return
   isActing.value = true
   try {
-    await inquiryAPI.ownerRespond(inquiryId.value, {decision: 'decline'})
+    await inquiryAPI.ownerRespond(inquiryId.value, { decision: 'decline' })
 
     inquiry.value.Inquiry_Status = 'Rejected'
 
@@ -544,7 +540,6 @@ async function declineOffer() {
     })
     scrollBottom()
     showToast('Offer declined.')
-
   } catch (err: any) {
     showToast(err.response?.data?.message || 'Failed to decline offer.', 'danger')
   } finally {
